@@ -1,6 +1,6 @@
 GridFS-folder-manager
 =====
-A small package for creating and interacting with folder trees for files stored in MongoDB using GridFS. 
+A small package for creating and interacting with folder trees for files stored in MongoDB using GridFS. Documentation can be found here: https://herschalo.github.io/GridFS-folder-manager/ 
 
 ```javascript
 import FolderTree from "GridFS-folder-manager"
