@@ -15,6 +15,10 @@
     "file storage",
     "file"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HerschaLo/GridFS-file-tree-manager"
+  },
   "dependencies": {
     "jszip": "^3.10.0",
     "mongodb": "^4.7.0"
