@@ -15,16 +15,15 @@
     "compile": "tsc --declaration",
     "lint": "tslint --project tsconfig.json",
     "prepublish": "npm run compile",
-    "test": "mocha",
-    "build-docs": "typedoc --entryPointStrategy expand src/"
+    "test": "mocha --timeout 3000"
   },
-  "name": "gridfs-folder-management",
+  "name": "gridfs-folder-manager",
   "version": "1.0.0",
   "main": "lib/index.js",
   "directories": {
     "test": "test"
   },
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "author": "stephen.dt.le@gmail.com",
+  "license": "MIT",
+  "description": "A small package for creating and interacting with folder trees for files stored in MongoDB using GridFS. "
 }
