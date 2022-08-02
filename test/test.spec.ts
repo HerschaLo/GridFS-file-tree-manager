@@ -2,7 +2,7 @@ const chai = require("chai")
 
 const expect = chai.expect
 import fs from "fs"
-import FolderTree from "../src/index"
+import MongoFileTree from "../src/index"
 import {MongoClient, GridFSBucket} from "mongodb"
 import {Readable} from "stream"
 import extract from "extract-zip"
@@ -14,18 +14,18 @@ const folderCollectionName = "folder-test"
 
 const bucketName = "bucket-test"
 
-const folderSystem = new FolderTree("mongodb://localhost:27017", dbName, bucketName, folderCollectionName)
+const folderSystem = new MongoFileTree("mongodb://localhost:27017", dbName, bucketName, folderCollectionName)
 
 describe("FolderTree", function(){
     it('should export the FolderTree class', function(){
-        expect(FolderTree).to.exist
-        expect(FolderTree).to.be.a('function')
-        expect(FolderTree.prototype.deleteFile).to.exist
-        expect(FolderTree.prototype.deleteFolder).to.exist
-        expect(FolderTree.prototype.createFolder).to.exist
-        expect(FolderTree.prototype.uploadFile).to.exist
-        expect(FolderTree.prototype.getFileReadStream).to.exist
-        expect(FolderTree.prototype.downloadFolder).to.exist
+        expect(MongoFileTree).to.exist
+        expect(MongoFileTree).to.be.a('function')
+        expect(MongoFileTree.prototype.deleteFile).to.exist
+        expect(MongoFileTree.prototype.deleteFolder).to.exist
+        expect(MongoFileTree.prototype.createFolder).to.exist
+        expect(MongoFileTree.prototype.uploadFile).to.exist
+        expect(MongoFileTree.prototype.getFileReadStream).to.exist
+        expect(MongoFileTree.prototype.downloadFolder).to.exist
 
         expect(JSON.stringify(folderSystem.db)).to.be.equal(JSON.stringify(client.db(dbName)))
         expect(folderSystem.folderCollectionName).to.be.equal(folderCollectionName)
@@ -520,7 +520,7 @@ describe("FolderTree", function(){
         }
         expect(err).to.exist
 
-        expect(err.message).to.be.equal("Cannot rename root directory of the folder tree")
+        expect(err.message).to.be.equal("Cannot rename root directory of the file tree")
         folderSystem.client.close()
     })
 

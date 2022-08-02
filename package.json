@@ -1,4 +1,20 @@
 {
+  "name": "gridfs-file-tree-manager",
+  "version": "1.0.0",
+  "main": "lib/index.js",
+  "directories": {
+    "test": "test"
+  },
+  "author": "stephen.dt.le@gmail.com",
+  "license": "MIT",
+  "description": "A small package for creating and interacting with file trees for files stored in MongoDB using GridFS. ",
+  "keywords": [
+    "MongoDB",
+    "GridFS",
+    "folder",
+    "file storage",
+    "file"
+  ],
   "dependencies": {
     "jszip": "^3.10.0",
     "mongodb": "^4.7.0"
@@ -15,15 +31,6 @@
     "compile": "tsc --declaration",
     "lint": "tslint --project tsconfig.json",
     "prepublish": "npm run compile",
-    "test": "mocha --timeout 3000"
-  },
-  "name": "gridfs-folder-manager",
-  "version": "1.0.0",
-  "main": "lib/index.js",
-  "directories": {
-    "test": "test"
-  },
-  "author": "stephen.dt.le@gmail.com",
-  "license": "MIT",
-  "description": "A small package for creating and interacting with folder trees for files stored in MongoDB using GridFS. "
+    "test": "mocha"
+  }
 }

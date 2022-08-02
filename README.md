@@ -1,13 +1,13 @@
-GridFS-folder-manager
+GridFS-file-tree-manager
 =====
-A small package for creating and interacting with folder trees for files stored in MongoDB using GridFS. Documentation can be found here: https://herschalo.github.io/GridFS-folder-manager/ 
+A small package for creating and interacting with file trees for files stored in MongoDB using GridFS. Documentation can be found here: https://herschalo.github.io/GridFS-file-tree-manager/ 
 
 ```javascript
-import FolderTree from "GridFS-folder-manager"
-//FolderTree class automatically connects to MongoDB for all methods. 
-const folders = new FolderTree("mongodb://localhost:27017", "GridFS-folder-management-sample", "sample-bucket", "sample-folder")
+import MongoFileTree from "GridFS-file-tree-manager"
+//MongoFileTree class automatically connects to MongoDB for all methods. 
+const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
 
-const docId = await folders.uploadFile(fs.createReadStream("sample.txt"), {name:"sample.txt", chunkSize:1048576})
+const docId = await fileTree.uploadFile(fs.createReadStream("sample.txt"), {name:"sample.txt", chunkSize:1048576})
 
 ```
 
@@ -16,4 +16,4 @@ If you want to run the tests for this library on your computer, make sure to hav
 License
 -------
 
-GridFS-folder-manager is licensed under the MIT license.
+GridFS-file-tree-manager is licensed under the MIT license.
