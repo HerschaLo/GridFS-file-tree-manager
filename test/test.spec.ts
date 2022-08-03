@@ -55,11 +55,11 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw error when uploading if user does not provide valid readable stream , the file name contains invalid characters', async ()=>{
+    it('should throw error when uploading if user does not provide valid readable stream, the file name contains invalid characters, or the user is missing properties from the "options" parameter', async ()=>{
         let err: any
 
         try{
-             // @ts-ignore: Unreachable code error
+             // @ts-ignore
             await folderSystem.uploadFile("not a readable stream", {name:"test.txt", chunkSize:1048576})
         }
 
@@ -71,7 +71,7 @@ describe("MongoFileTree", function(){
 
         err = undefined
         try{
-            // @ts-ignore: Unreachable code error
+            // @ts-ignore
            await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test/txt", chunkSize:1048576})
         }
 
@@ -80,6 +80,31 @@ describe("MongoFileTree", function(){
         }
 
         expect(err.message).to.be.equal(`Character "/" cannot be used as part of a file name`)
+        
+        err = undefined
+        try{
+            // @ts-ignore
+           await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {chunkSize:1048576})
+        }
+
+        catch(e){
+            err = e
+        }
+
+        expect(err.message).to.be.equal(`Missing 'name' property for 'options' parameter.`)
+        
+        err = undefined
+        try{
+            // @ts-ignore
+           await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test/txt"})
+        }
+
+        catch(e){
+            err = e
+        }
+
+        expect(err.message).to.be.equal(`Missing 'chunkSize' property for 'options' parameter.`)
+        
         folderSystem.client.close()
     })
 
@@ -106,7 +131,7 @@ describe("MongoFileTree", function(){
             err = e
         }
 
-        expect(err.message).to.be.equal("Folder with this name already exists in the current directory")
+        expect(err.message).to.be.equal("Folder with name subfolder-test already exists in the current directory")
         err = undefined
 
         try{
@@ -218,8 +243,10 @@ describe("MongoFileTree", function(){
     })
 
     it('should allow users to change the metadata of files', async ()=>{
-        await folderSystem.changeFileMetadata("folder-test/test.txt", {favourite:true})
-        expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.favourite":true}).toArray()).length).to.be.equal(1)
+        await folderSystem.changeFileMetadata("folder-test/test.txt", {favourite:true, encoding:"UTF-8"})
+        expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.favourite":true, "metadata.encoding":"UTF-8"}).toArray()).length).to.be.equal(1)
+        await folderSystem.changeFileMetadata("folder-test/test.txt", {}, ["encoding"])
+        expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.favourite":true, "metadata.encoding":{$exists:false}}).toArray()).length).to.be.equal(1)
         await folderSystem.changeFileMetadata("folder-test/test.txt", {encoding:"UTF-8"}, ["favourite"], true)
         expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.encoding":"UTF-8"}).toArray()).length).to.be.equal(3)
         expect(await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.favourite":true}).hasNext()).to.be.equal(false)
@@ -436,7 +463,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user tries to change the name of a folder that does not exist,  the new folder name contains invalid characters, or the user attempts to rename the root directory', async ()=>{
+    it('should throw an error if the user tries to change the name of a folder that does not exist, the new folder name contains invalid characters, a folder with the new name already exists in the specified directory, or the user attempts to rename the root directory', async ()=>{
         await folderSystem.client.connect()
         let err: any
 
@@ -471,6 +498,18 @@ describe("MongoFileTree", function(){
         }
 
         expect(err.message).to.be.equal("Cannot rename root directory of the file tree")
+
+        err = undefined
+
+        try{
+            await folderSystem.changeFolderName("new-folder-name", "folder-test/new-folder-name")
+        }
+
+        catch(e: any){
+            err = e
+        }
+
+        expect(err.message).to.be.equal("Folder with name new-folder-name already exists in the specified directory")
         folderSystem.client.close()
     })
 

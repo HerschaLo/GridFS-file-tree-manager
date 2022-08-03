@@ -162,7 +162,7 @@ class MongoFileTree{
 
                 const doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":path}))
                 if(doesFolderExist){
-                    return reject(new Error("Folder with this name already exists in the current directory"))
+                    return reject(new Error(`Folder with name ${folderName} already exists in the current directory`))
                 }
                 if(folderName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
                     // @ts-ignore
@@ -506,7 +506,7 @@ class MongoFileTree{
                 const doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":topFolder?.parentDirectory+`/${newName}`}))
 
                 if(doesFolderExist){
-                    return reject(new Error(`Folder with name ${newName} already exists in the current directory`))
+                    return reject(new Error(`Folder with name ${newName} already exists in the specified directory`))
                 }
 
                 newPath = topFolder?.parentDirectory+`/${newName}`
