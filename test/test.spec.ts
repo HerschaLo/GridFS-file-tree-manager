@@ -30,63 +30,63 @@ describe("FolderTree", function(){
         expect(JSON.stringify(folderSystem.db)).to.be.equal(JSON.stringify(client.db(dbName)))
         expect(folderSystem.folderCollectionName).to.be.equal(folderCollectionName)
         expect(folderSystem.bucketName).to.be.equal(bucketName)
-        expect(JSON.stringify(folderSystem.bucket)).to.be.equal(JSON.stringify(new GridFSBucket(client.db(dbName), {bucketName:bucketName})))
+        expect(JSON.stringify(folderSystem.bucket)).to.be.equal(JSON.stringify(new GridFSBucket(client.db(dbName), {bucketName})))
     })
 
     it('should allow users to upload files and track which version of a file is the latest', async function(){
         const fileId1 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576, customMetadata:{starred:false}})
-    
+
         await folderSystem.client.connect()
-        
+
         let file1 = (await folderSystem.bucket.find({_id:fileId1}).toArray())[0]
-        expect(file1.filename).to.be.equal("test.txt") 
+        expect(file1.filename).to.be.equal("test.txt")
         expect(file1.metadata?.isLatest).to.be.equal(true)
-        expect(file1.metadata?.path).to.be.equal("folder-test/test.txt") 
-        expect(file1.metadata?.parentDirectory).to.be.equal(folderCollectionName) 
-        expect(file1.metadata?.starred).to.be.equal(false) 
-        
+        expect(file1.metadata?.path).to.be.equal("folder-test/test.txt")
+        expect(file1.metadata?.parentDirectory).to.be.equal(folderCollectionName)
+        expect(file1.metadata?.starred).to.be.equal(false)
+
         const fileId2 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576, customMetadata:{starred:false}})
-        
-        let file2 = (await folderSystem.bucket.find({_id:fileId2}).toArray())[0]
-        expect(file2.filename).to.be.equal("test.txt") 
-        expect(file2.metadata?.isLatest).to.be.equal(true) 
-        expect(file2.metadata?.path).to.be.equal("folder-test/test.txt") 
-        expect(file2.metadata?.parentDirectory).to.be.equal(folderCollectionName) 
+
+        const file2 = (await folderSystem.bucket.find({_id:fileId2}).toArray())[0]
+        expect(file2.filename).to.be.equal("test.txt")
+        expect(file2.metadata?.isLatest).to.be.equal(true)
+        expect(file2.metadata?.path).to.be.equal("folder-test/test.txt")
+        expect(file2.metadata?.parentDirectory).to.be.equal(folderCollectionName)
 
         file1 = (await folderSystem.bucket.find({_id:fileId1}).toArray())[0]
-        expect(file1.filename).to.be.equal("test.txt") 
-        expect(file1.metadata?.isLatest).to.be.equal(false) 
-        expect(file1.metadata?.path).to.be.equal("folder-test/test.txt") 
-        expect(file1.metadata?.parentDirectory).to.be.equal(folderCollectionName) 
-        
-        folderSystem.client.close() 
+        expect(file1.filename).to.be.equal("test.txt")
+        expect(file1.metadata?.isLatest).to.be.equal(false)
+        expect(file1.metadata?.path).to.be.equal("folder-test/test.txt")
+        expect(file1.metadata?.parentDirectory).to.be.equal(folderCollectionName)
+
+        folderSystem.client.close()
     })
 
     it('should track which version of a file is the latest', async function(){
         const fileId1 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576})
-    
-        await folderSystem.client.connect()
-        
-        
-        const fileId2 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576})
-        
-        let file2 = (await folderSystem.bucket.find({_id:fileId2}).toArray())[0]
-        expect(file2.filename).to.be.equal("test.txt") 
-        expect(file2.metadata?.isLatest).to.be.equal(true) 
-        expect(file2.metadata?.path).to.be.equal("folder-test/test.txt") 
-        expect(file2.metadata?.parentDirectory).to.be.equal(folderCollectionName) 
 
-        let file1 = (await folderSystem.bucket.find({_id:fileId1}).toArray())[0]
-        expect(file1.filename).to.be.equal("test.txt") 
-        expect(file1.metadata?.isLatest).to.be.equal(false) 
-        expect(file1.metadata?.path).to.be.equal("folder-test/test.txt") 
-        expect(file1.metadata?.parentDirectory).to.be.equal(folderCollectionName) 
-        
-        folderSystem.client.close() 
+        await folderSystem.client.connect()
+
+
+        const fileId2 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576})
+
+        const file2 = (await folderSystem.bucket.find({_id:fileId2}).toArray())[0]
+        expect(file2.filename).to.be.equal("test.txt")
+        expect(file2.metadata?.isLatest).to.be.equal(true)
+        expect(file2.metadata?.path).to.be.equal("folder-test/test.txt")
+        expect(file2.metadata?.parentDirectory).to.be.equal(folderCollectionName)
+
+        const file1 = (await folderSystem.bucket.find({_id:fileId1}).toArray())[0]
+        expect(file1.filename).to.be.equal("test.txt")
+        expect(file1.metadata?.isLatest).to.be.equal(false)
+        expect(file1.metadata?.path).to.be.equal("folder-test/test.txt")
+        expect(file1.metadata?.parentDirectory).to.be.equal(folderCollectionName)
+
+        folderSystem.client.close()
     })
 
     it('should throw error when uploading if user does not provide valid readable stream , the file name contains invalid characters', async function(){
-        let err: any = undefined
+        let err: any
 
         try{
              // @ts-ignore: Unreachable code error
@@ -118,19 +118,19 @@ describe("FolderTree", function(){
     it('should allow users to create folders', async function(){
         await folderSystem.client.connect()
         const folderId = (await folderSystem.createFolder("subfolder-test")).insertedId
-        let folder = (await folderSystem.db.collection(folderSystem.folderCollectionName).find({_id:folderId}).toArray())[0]
+        const folder = (await folderSystem.db.collection(folderSystem.folderCollectionName).find({_id:folderId}).toArray())[0]
 
         expect(folder.parentDirectory).to.be.equal("folder-test")
         expect(folder.path).to.be.equal("folder-test/subfolder-test")
         expect(folder.name).to.be.equal("subfolder-test")
-       
+
         folderSystem.client.close()
     })
 
     it('should throw an error if the user tries to create a folder with a name that already exists in the current directory or has invalid characters in its name', async function(){
         await folderSystem.client.connect()
-        let err: any = undefined
-        
+        let err: any
+
         try{
             await folderSystem.createFolder("subfolder-test")
         }
@@ -141,7 +141,7 @@ describe("FolderTree", function(){
         expect(err).to.exist
         expect(err.message).to.be.equal("Folder with this name already exists in the current directory")
         err = undefined
-        
+
         try{
             await folderSystem.createFolder("subfolder-test ")
         }
@@ -165,7 +165,7 @@ describe("FolderTree", function(){
 
     it('should throw an error if the user tries to set the current working directory to a folder that does not exist', async function(){
         await folderSystem.client.connect()
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.changeDirectory("invalid-path")
@@ -192,7 +192,7 @@ describe("FolderTree", function(){
 
     it('should throw an error if the user tries to change the name of a file that does not exist or the new name contains invalid characters', async function(){
         await folderSystem.client.connect()
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.changeFileName("new-file-name.txt", "invalid-path")
@@ -205,7 +205,7 @@ describe("FolderTree", function(){
 
         expect(err.message).to.be.equal("File with path invalid-path does not exist")
         err = undefined
-        
+
         try{
             await folderSystem.changeFileName("invalid-name/", "folder-test/new-file-name.txt")
         }
@@ -239,8 +239,8 @@ describe("FolderTree", function(){
     })
 
     it('should throw an error if a user tries to download a file that does not exist', async function(){
-        
-        let err: any = undefined
+
+        let err: any
 
         try{
             await folderSystem.getFileReadStream("invalid-file-path")
@@ -266,7 +266,7 @@ describe("FolderTree", function(){
 
     it("should raise an error if the user tries to change the 'isLatest', 'path', or 'parentDirectory' metadata properties on files", async function(){
         await folderSystem.client.connect()
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.changeFileMetadata("folder-test/test.txt", {path:true})
@@ -279,7 +279,7 @@ describe("FolderTree", function(){
 
         expect(err.message).to.be.equal("Cannot change or delete 'path' metadata property using this method")
         err = undefined
-        
+
         try{
             await folderSystem.changeFileMetadata("folder-test/test.txt", {parentDirectory:true})
         }
@@ -291,7 +291,7 @@ describe("FolderTree", function(){
 
         expect(err.message).to.be.equal("Cannot change or delete 'parentDirectory' metadata property using this method")
         err = undefined
-        
+
         try{
             await folderSystem.changeFileMetadata("folder-test/test.txt", {isLatest:true})
         }
@@ -316,7 +316,7 @@ describe("FolderTree", function(){
 
     it("should raise an error if the user tries to change the 'isLatest', 'path', or 'parentDirectory' metadata properties on folders", async function(){
         await folderSystem.client.connect()
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.changeFolderMetadata("folder-test/subfolder-test", {path:true})
@@ -329,7 +329,7 @@ describe("FolderTree", function(){
 
         expect(err.message).to.be.equal("Cannot change or delete 'path' metadata property using this method")
         err = undefined
-        
+
         try{
             await folderSystem.changeFolderMetadata("folder-test/subfolder-test", {parentDirectory:true})
         }
@@ -341,7 +341,7 @@ describe("FolderTree", function(){
 
         expect(err.message).to.be.equal("Cannot change or delete 'parentDirectory' metadata property using this method")
         err = undefined
-        
+
         try{
             await folderSystem.changeFolderMetadata("folder-test/subfolder-test", {isLatest:true})
         }
@@ -354,7 +354,7 @@ describe("FolderTree", function(){
         expect(err.message).to.be.equal("Cannot add or delete 'isLatest' metadata property for a folder")
         folderSystem.client.close()
     })
-    
+
     it('should allow users to delete files', async function(){
         await folderSystem.client.connect()
         await folderSystem.deleteFile("folder-test/test.txt")
@@ -363,7 +363,7 @@ describe("FolderTree", function(){
     })
 
     it('should throw an error if a user tries to delete a file that does not exist', async function(){
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.deleteFile("invalid-file-path")
@@ -389,11 +389,11 @@ describe("FolderTree", function(){
         await folderSystem.createFolder("subfolder-test-3")
         await folderSystem.changeDirectory("subfolder-test-3", true)
         await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:'test.txt', chunkSize:1048576})
-        
-        let zip: any = await folderSystem.downloadFolder("folder-test/subfolder-test", "nodebuffer")
-        let readStream = Readable.from(zip)
+
+        const zip: any = await folderSystem.downloadFolder("folder-test/subfolder-test", "nodebuffer")
+        const readStream = Readable.from(zip)
         const writeStream = fs.createWriteStream("./test_output/test.zip")
-        
+
         readStream.pipe(writeStream)
 
         await new Promise<void>((resolve)=>{
@@ -403,20 +403,20 @@ describe("FolderTree", function(){
         })
 
         await extract("./test_output/test.zip", {dir:process.cwd()+"\\test_output"})
-        
+
         expect(fs.readFileSync("./test_output/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
         expect(fs.readFileSync("./test_output/test.PNG").equals(fs.readFileSync("./test/test.PNG"))).to.be.equal(true)
         expect(fs.readFileSync("./test_output/subfolder-test-2/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
         expect(fs.readFileSync("./test_output/subfolder-test-2/subfolder-test-3/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
-        
+
 
 
         await folderSystem.changeDirectory("folder-test")
         await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576})
-        let zip2: any = await folderSystem.downloadFolder("folder-test", "nodebuffer")
-        let readStream2 = Readable.from(zip2)
+        const zip2: any = await folderSystem.downloadFolder("folder-test", "nodebuffer")
+        const readStream2 = Readable.from(zip2)
         const writeStream2 = fs.createWriteStream("./test_output_2/whole-collection-test.zip")
-        
+
         readStream2.pipe(writeStream2)
 
         await new Promise<void>((resolve)=>{
@@ -426,19 +426,19 @@ describe("FolderTree", function(){
         })
 
         await extract("./test_output_2/whole-collection-test.zip", {dir:process.cwd()+"\\test_output_2"})
-        
+
         expect(fs.readFileSync("./test_output_2/subfolder-test/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
         expect(fs.readFileSync("./test_output_2/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
         expect(fs.readFileSync("./test_output_2/subfolder-test/test.PNG").equals(fs.readFileSync("./test/test.PNG"))).to.be.equal(true)
         expect(fs.readFileSync("./test_output_2/subfolder-test/subfolder-test-2/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
         expect(fs.readFileSync("./test_output_2/subfolder-test/subfolder-test-2/subfolder-test-3/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
-        
+
 
         folderSystem.client.close()
     })
 
     it('should throw an error if the user tries to download a folder that does not exist', async function(){
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.downloadFolder("invalid-folder-path", "nodebuffer")
@@ -454,7 +454,7 @@ describe("FolderTree", function(){
     })
 
     it('should throw an error if the user provides an invalid argument for returnType when trying to download a folder', async function(){
-        let err: any = undefined
+        let err: any
 
         try{
             // @ts-ignore
@@ -485,7 +485,7 @@ describe("FolderTree", function(){
 
     it('should throw an error if the user tries to change the name of a folder that does not exist,  the new folder name contains invalid characters, or the user attempts to rename the root directory', async function(){
         await folderSystem.client.connect()
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.changeFolderName("new-file-name.txt", "invalid-path")
@@ -498,7 +498,7 @@ describe("FolderTree", function(){
 
         expect(err.message).to.be.equal("Folder with path invalid-path does not exist")
         err = undefined
-        
+
         try{
             await folderSystem.changeFolderName("invalid-name$", "folder-test/new-folder-name")
         }
@@ -510,7 +510,7 @@ describe("FolderTree", function(){
 
         expect(err.message).to.be.equal(`Character "$" cannot be used as part of a folder name`)
         err = undefined
-        
+
         try{
             await folderSystem.changeFolderName("new-root-name", "folder-test")
         }
@@ -526,7 +526,7 @@ describe("FolderTree", function(){
 
     it('should allow users to delete folders', async function(){
         await folderSystem.client.connect()
-       
+
         await folderSystem.deleteFolder("folder-test/new-folder-name")
         expect(Boolean(await folderSystem.db.collection(folderCollectionName).findOne({"path":"folder-test/new-folder-name"}))).to.be.equal(false)
         expect(Boolean(await folderSystem.db.collection(folderCollectionName).findOne({"path":"folder-test/new-folder-name/subfolder-test-2"}))).to.be.equal(false)
@@ -535,7 +535,7 @@ describe("FolderTree", function(){
         expect(await folderSystem.db.collection(bucketName+".files").find({"metadata.path":"folder-test/new-folder-name/test.PNG"}).hasNext()).to.be.equal(false)
         expect(await folderSystem.db.collection(bucketName+".files").find({"metadata.path":"folder-test/new-folder-name/subfolder-test-2/test.txt"}).hasNext()).to.be.equal(false)
         expect(await folderSystem.db.collection(bucketName+".files").find({"metadata.path":"folder-test/new-folder-name/subfolder-test-2/subfolder-test-3/test.txt"}).hasNext()).to.be.equal(false)
-        
+
         await folderSystem.createFolder("new-folder")
         await folderSystem.deleteFolder("folder-test")
         expect(Boolean(await folderSystem.db.collection(folderCollectionName).findOne({"parentDirectory":new RegExp("^"+folderCollectionName)}))).to.be.equal(false)
@@ -544,7 +544,7 @@ describe("FolderTree", function(){
     })
 
     it('should throw an error if the user tries to delete a folder that does not exist', async function(){
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.deleteFolder("invalid-folder-path")
@@ -565,7 +565,7 @@ describe("FolderTree", function(){
         await folderSystem.createFolder("new-folder")
 
         await folderSystem.changeDirectory("new-folder", true)
-        let err: any = undefined
+        let err: any
 
         try{
             await folderSystem.deleteFolder("new-folder")

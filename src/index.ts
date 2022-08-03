@@ -4,7 +4,7 @@ import JSZip, { OutputType } from "jszip"
 
 /**
  * Shape of the object to be provided as an argument for the `options` parameter
- * of the `uploadFile` method on the MongoFileTree class. 
+ * of the `uploadFile` method on the MongoFileTree class.
  */
 interface FileOptions{
     /** Name of the file being uploaded  */
@@ -16,16 +16,16 @@ interface FileOptions{
 }
 
 /**
- * Object type representing custom metadata that the user can add to folders and files. 
- * Can have any property except 'path', 'parentDirectory', and 'isLatest'. 
+ * Object type representing custom metadata that the user can add to folders and files.
+ * Can have any property except 'path', 'parentDirectory', and 'isLatest'.
  * This prevents users from improperly modifying these properties using class methods, as they
- * are critical to the basic functioning of the file tree. 
+ * are critical to the basic functioning of the file tree.
  */
 type MetadataOptions = Omit<object, "path" | "parentDirectory"| "isLatest">
 
-/** Stores a file tree in MongoDB using GridFS. 
- * Files will be stored in a GridFS Bucket, and the documents in the `files` collection of the 
- * bucket will have the following shape: 
+/** Stores a file tree in MongoDB using GridFS.
+ * Files will be stored in a GridFS Bucket, and the documents in the `files` collection of the
+ * bucket will have the following shape:
  * ```
  * {
  * "_id" : <ObjectId>,
@@ -33,7 +33,7 @@ type MetadataOptions = Omit<object, "path" | "parentDirectory"| "isLatest">
  * "chunkSize" : <num>,
  * "uploadDate" : <timestamp>,
  * "filename" : <string>,
- * "metadata" : { 
+ * "metadata" : {
     "parentDirectory":<string>, //Absolute path of the folder where the file is located
     "path":<string>, //Absolute path of the file
     "isLatest":<boolean>, //Is this the latest version of the file or not
@@ -41,58 +41,58 @@ type MetadataOptions = Omit<object, "path" | "parentDirectory"| "isLatest">
  *  },
  * }
  * ```
- * The file tree can store multiple versions of a file. 
- * The name of the file cannot have the following characters: /, $, %, ?, @, ", ', !, $, >, <, *, &, {,}, #, =,`, |, :, +, and whitespace characters. 
- * An error will be raised if the user attempts to upload a file with those characters in its name or change a file's name 
- * to a name that has those characters. The same is true for folder names. The folders of the file tree are stored as 
+ * The file tree can store multiple versions of a file.
+ * The name of the file cannot have the following characters: /, $, %, ?, @, ", ', !, $, >, <, *, &, {,}, #, =,`, |, :, +, and whitespace characters.
+ * An error will be raised if the user attempts to upload a file with those characters in its name or change a file's name
+ * to a name that has those characters. The same is true for folder names. The folders of the file tree are stored as
  * documents in a separate collection from the bucket and possess the following shape in MongoDB:
  * ```
- * 
+ *
  * {
  * "_id": <ObjectId>,
- * "name": <string>, 
+ * "name": <string>,
  * "path": <string>, //Absolute path of the folder
  * "parentDirectory":<string>, //Absolute path of the folder's parent folder.
  * "customMetadata": <object> //customMetadata can have any property specified by the user besides "isLatest", "path", or "parentDirectory"
  * }
- * 
+ *
  * ```
- * The collection that stores folders is treated as the "root directory" of the file tree, with the 
- * root directory's absolute path being the same as the name of the collection. A 
+ * The collection that stores folders is treated as the "root directory" of the file tree, with the
+ * root directory's absolute path being the same as the name of the collection. A
  * `FileTree` object will also have a "current working directory",
- * with the absolute path to it being stored in the `currentWorkingDirectory` property. 
- * The `currentWorkingDirectory` property will be the root directory when initialized. 
- * The methods on this class to upload files and create folders automatically puts them under the 
- * current working directory. 
+ * with the absolute path to it being stored in the `currentWorkingDirectory` property.
+ * The `currentWorkingDirectory` property will be the root directory when initialized.
+ * The methods on this class to upload files and create folders automatically puts them under the
+ * current working directory.
  * Note: this class automatically connects to MongoDB for all methods. */
 class MongoFileTree{
-    
-    private _currentWorkingDirectory: string 
+
+    private _currentWorkingDirectory: string
     private _bucket: GridFSBucket
     private _db:Db
     private _folderCollectionName: string
     private _client:MongoClient
     private _bucketName: string
-    
+
     /**
      * @constructor
-     * Connect to a MongoDB database that has a file tree. If any part of the file tree (database, folder storage collection, GridFS Bucket) 
-     * does not already exist, it is created 
+     * Connect to a MongoDB database that has a file tree. If any part of the file tree (database, folder storage collection, GridFS Bucket)
+     * does not already exist, it is created
      * @param {string} mongoConnectionUrl - Connection URL to a MongoDB server
-     * @param {string} dbName - Name of a MongoDB database 
+     * @param {string} dbName - Name of a MongoDB database
      * @param {string} bucketName - Name of the GridFS bucket that will store the files of the file tree
      * @param {string} folderCollectionName - Name of the collection in the Mongo database specified by dbName
      * that will be used for folder storage, store documents representing folders in the file tree
      */
     constructor(mongoConnectionUrl: string, dbName: string, bucketName: string, folderCollectionName: string){
         this._client = new MongoClient(mongoConnectionUrl)
-        
+
         this._currentWorkingDirectory = folderCollectionName
-        
-        this._bucket  = new GridFSBucket(this._client.db(dbName), {bucketName:bucketName})
-        
+
+        this._bucket  = new GridFSBucket(this._client.db(dbName), {bucketName})
+
         this._db= this._client.db(dbName)
-        
+
         this._folderCollectionName = folderCollectionName
 
         this._bucketName = bucketName
@@ -123,8 +123,8 @@ class MongoFileTree{
         return this._folderCollectionName
     }
     /**
-     * Absolute path of the current working directory of the file tree. 
-     * This directory is where the files uploaded by the uploadFile method 
+     * Absolute path of the current working directory of the file tree.
+     * This directory is where the files uploaded by the uploadFile method
      * and the folders created by the createFolder method will be located.
      */
     public get currentWorkingDirectory(){
@@ -138,13 +138,13 @@ class MongoFileTree{
     }
 
     /**
-     * @description Creates a document representing a folder in the collection specified by `folderCollectionName`. 
-     * Its parent directory will be the current value of the `currentWorkingDirectory` property. 
-     * Will return an error if a folder with the name provided to the method already 
-     * exists in the current working directory of the file tree. 
+     * @description Creates a document representing a folder in the collection specified by `folderCollectionName`.
+     * Its parent directory will be the current value of the `currentWorkingDirectory` property.
+     * Will return an error if a folder with the name provided to the method already
+     * exists in the current working directory of the file tree.
      * @param {string} folderName Name of the folder
-     * @param {object} customMetadata Custom metadata properties to add to the folder. 
-     * Any property can be added except `path`, `isLatest`, or `parentDirectory`. 
+     * @param {object} customMetadata Custom metadata properties to add to the folder.
+     * Any property can be added except `path`, `isLatest`, or `parentDirectory`.
      * @since 1.0.0
      * @version 0.1.0
      * @example
@@ -157,25 +157,25 @@ class MongoFileTree{
     createFolder(folderName: string, customMetadata?: MetadataOptions){
         return new Promise<InsertOneResult>(async (resolve, reject)=>{
             this._client.connect(async ()=>{
-                let path = this.currentWorkingDirectory+`/${folderName}`
-                
-                let doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":path}))
+                const path = this.currentWorkingDirectory+`/${folderName}`
+
+                const doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":path}))
                 if(doesFolderExist){
                     return reject(new Error("Folder with this name already exists in the current directory"))
                 }
                 if(folderName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
                     // @ts-ignore
-                    let errSymbol = folderName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]
+                    const errSymbol = folderName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]
                     return reject(new Error(`Character "${errSymbol}" cannot be used as part of a folder name`))
                 }
 
-                let result =  await this._db.collection(this._folderCollectionName).insertOne({name:folderName, path:path, parentDirectory:this.currentWorkingDirectory, customMetadata:{...customMetadata}})
+                const result =  await this._db.collection(this._folderCollectionName).insertOne({name:folderName, path, parentDirectory:this.currentWorkingDirectory, customMetadata:{...customMetadata}})
                 resolve(result)
             })
         })
     }
     /**
-     * @description Returns a promise which resolves to a `GridFSBucketReadStream` of a file stored in the 
+     * @description Returns a promise which resolves to a `GridFSBucketReadStream` of a file stored in the
      * GridFS Bucket specified by the `bucketName` property.
      * @param {string} filePath Absolute path of the file to get a readable stream of
      * @since 1.0.0
@@ -189,7 +189,7 @@ class MongoFileTree{
     getFileReadStream(filePath: string){
         return new Promise<GridFSBucketReadStream>((resolve, reject)=>{
             this._client.connect(async ()=>{
-                let file = (await this._bucket.find({"metadata.path":filePath, "metadata.isLatest":true}).toArray())[0]
+                const file = (await this._bucket.find({"metadata.path":filePath, "metadata.isLatest":true}).toArray())[0]
 
                 if(!file){
                     return reject(new Error(`File with path ${filePath} does not exist`))
@@ -200,8 +200,8 @@ class MongoFileTree{
 
     }
     /**
-     * @description Lets the user download the folder specified in the `folderPath` parameter as a zip file. The form which the zip file is returned varies 
-     * based on the argument provided for the returnType parameter. 
+     * @description Lets the user download the folder specified in the `folderPath` parameter as a zip file. The form which the zip file is returned varies
+     * based on the argument provided for the returnType parameter.
      * @param {string} folderPath String representing the absolute path of the folder
      * @param {string} returnType String specifying the form in which the zip file of the target folder should be returned. Valid options are 'base64',
      * 'nodebuffer' (NodeJS buffer), 'array' (array of bytes (numbers between 255 and 0)), 'uint8array','arraybuffer', 'blob', and 'binarystring'.
@@ -210,17 +210,17 @@ class MongoFileTree{
      * @example
      *
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
-     * //Returns an array of bytes (numbers between 255 and 0) representing the data of the zip file 
+     * //Returns an array of bytes (numbers between 255 and 0) representing the data of the zip file
      * let zip = await fileTree.downloadFolder("sample-folder/subfolder-sample", "array")
      */
     downloadFolder(folderPath: string, returnType: OutputType){
         return new Promise<Buffer|Uint8Array|String|Blob|Number[]|ArrayBuffer>((resolve, reject)=>{
             this._client.connect(async ()=>{
-                let folderZip = new JSZip()
+                const folderZip = new JSZip()
 
                 const downloadAsync = async (file: GridFSFile): Promise<void> =>{
                     return new Promise<void>((resolve, reject)=>{
-                        let downloadStream = this._bucket.openDownloadStream(file._id)
+                        const downloadStream = this._bucket.openDownloadStream(file._id)
                         let data = ''
                         downloadStream.on("data",(chunk)=>{
                             data+=chunk.toString("base64")
@@ -232,7 +232,7 @@ class MongoFileTree{
                     })
                 }
 
-                let topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
+                const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
 
                 if(!topFolder && folderPath !== this._folderCollectionName){
                     return reject(new Error(`Folder with path ${folderPath} does not exist`))
@@ -242,8 +242,8 @@ class MongoFileTree{
                     return reject(new Error(`Invalid argument for parameter returnType. Argument must either be 'base64','nodebuffer', 'array', 'uint8array','arraybuffer', 'blob', or 'binarystring'.`))
                 }
 
-                let allFiles: Array<GridFSFile> = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
-                
+                const allFiles: GridFSFile[] = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
+
 
                 for(let i=0; i<allFiles.length; i++){
                     await downloadAsync(allFiles[i])
@@ -254,23 +254,23 @@ class MongoFileTree{
     }
     /**
      * @description Upload a file to the GridFS Bucket file tree, with the parent directory of the file being
-     * the current working directory of the file tree. 
+     * the current working directory of the file tree.
      * If a file with the name provided to the method from the `options` parameter already exists
-     * in the current working directory of the file tree, 
-     * the uploaded file will be treated as the latest version of that file, with the 
-     * `isLatest` metadata property of the uploaded file being true and the `isLatest` property of the 
-     * previous file being set to false. 
+     * in the current working directory of the file tree,
+     * the uploaded file will be treated as the latest version of that file, with the
+     * `isLatest` metadata property of the uploaded file being true and the `isLatest` property of the
+     * previous file being set to false.
      * @param {Readable} fileStream Valid readable stream
-     * @param {FileOptions} options Options for the file. Mandatory properties are `name` and `chunkSize` 
-     * (the size of the chunks of the file in GridFS in bytes). 
-     * The `customMetadata` property is optional. 
+     * @param {FileOptions} options Options for the file. Mandatory properties are `name` and `chunkSize`
+     * (the size of the chunks of the file in GridFS in bytes).
+     * The `customMetadata` property is optional.
      * @since 1.0.0
      * @version 0.1.0
      * @example
      *
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * // id of the file in file tree GridFS bucket
-     * let id = await fileTree.uploadFile(fs.createReadStream("sample.txt"), {name:"sample.txt", chunkSize:1048576, customMetadata:{favourite:true}}) 
+     * let id = await fileTree.uploadFile(fs.createReadStream("sample.txt"), {name:"sample.txt", chunkSize:1048576, customMetadata:{favourite:true}})
      */
     uploadFile(fileStream: Readable, options: FileOptions){
         return new Promise<ObjectId>((resolve, reject)=>{
@@ -291,17 +291,17 @@ class MongoFileTree{
                 return reject(new Error(`Character "${options.name.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]}" cannot be used as part of a file name`))
             }
 
-            let path = this.currentWorkingDirectory+`/${options.name}`
-            
+            const path = this.currentWorkingDirectory+`/${options.name}`
+
             this._client.connect(()=>{
                 this._db.collection(this._bucketName+".files").findOneAndUpdate({"metadata.path":path, "metadata.isLatest":true},{$set:{"metadata.isLatest":false}})
-                let uploadStream = this._bucket.openUploadStream(options.name, {
-                    
+                const uploadStream = this._bucket.openUploadStream(options.name, {
+
                     chunkSizeBytes:options.chunkSize,
 
                     metadata:{
-                        parentDirectory:this.currentWorkingDirectory, 
-                        path:path,
+                        parentDirectory:this.currentWorkingDirectory,
+                        path,
                         isLatest:true,
                         ...options.customMetadata
                     }
@@ -316,8 +316,8 @@ class MongoFileTree{
         })
     }
     /**
-     * @description Change the name of a file in the file tree. This also changes its `path` metadata property accordingly. 
-     * @param {string} newName New name for the file 
+     * @description Change the name of a file in the file tree. This also changes its `path` metadata property accordingly.
+     * @param {string} newName New name for the file
      * @param {string} filePath Absolute path of the file that you want to change the name of
      * @since 1.0.0
      * @version 0.1.0
@@ -329,7 +329,7 @@ class MongoFileTree{
      changeFileName(newName:string, filePath:string){
         return new Promise<void>((resolve, reject)=>{
             this._client.connect(async ()=>{
-                let allFileVersions = this._bucket.find({"metadata.path":filePath})
+                const allFileVersions = this._bucket.find({"metadata.path":filePath})
 
                 if(!(await allFileVersions.hasNext())){
                     return reject(new Error(`File with path ${filePath} does not exist`))
@@ -340,7 +340,7 @@ class MongoFileTree{
                     return reject(new Error(`Character "${newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]}" cannot be used as part of a file name`))
                 }
 
-                let parentDirectory = (await allFileVersions.next())?.metadata?.parentDirectory
+                const parentDirectory = (await allFileVersions.next())?.metadata?.parentDirectory
                 await this._db.collection(this.bucketName+".files").updateMany({"metadata.path":filePath},{$set:{"metadata.path":parentDirectory+`/${newName}`, "filename":newName}})
 
                 resolve()
@@ -350,13 +350,13 @@ class MongoFileTree{
     }
 
     /**
-     * @description Update the metadata of a file in the file tree, allowing users to add, change, or delete metadata properties from files. 
-     * Raises an error if the user tries to change or delete the 'path', 'parentDirectory', or 'isLatest' metadata properties from a file. 
+     * @description Update the metadata of a file in the file tree, allowing users to add, change, or delete metadata properties from files.
+     * Raises an error if the user tries to change or delete the 'path', 'parentDirectory', or 'isLatest' metadata properties from a file.
      * @param {string} filePath Absolute path of the file that you want to change the metadata of
-     * @param {MetadataOptions} newMetadata Metadata properties to add or change the value of. Can have any property except the ones listed above. 
-     * @param {Array<string>} deleteFields Metadata properties to delete. Can include any property except the ones listed above. 
-     * @param {boolean} changeForAllVersions If false, only changes metadata properties for latest version of file. 
-     * If true, changes metadata properties for all versions of the file. Defaults to false. 
+     * @param {MetadataOptions} newMetadata Metadata properties to add or change the value of. Can have any property except the ones listed above.
+     * @param {Array<string>} deleteFields Metadata properties to delete. Can include any property except the ones listed above.
+     * @param {boolean} changeForAllVersions If false, only changes metadata properties for latest version of file.
+     * If true, changes metadata properties for all versions of the file. Defaults to false.
      * @since 1.0.0
      * @version 0.1.0
      * @example
@@ -364,7 +364,7 @@ class MongoFileTree{
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFileMetadata("sample-folder/sample.txt", {favourite:true}, ["sample-property"], true)
      */
-     changeFileMetadata(filePath: string, newMetadata?:MetadataOptions, deleteFields?:Array<string>, changeForAllVersions: boolean= false){
+     changeFileMetadata(filePath: string, newMetadata?:MetadataOptions, deleteFields?:string[], changeForAllVersions: boolean= false){
         return new Promise<void>((resolve, reject)=>{
             this._client.connect(async ()=>{
                 // @ts-ignore
@@ -381,7 +381,7 @@ class MongoFileTree{
                 }
                 if(changeForAllVersions){
                     if(newMetadata){
-                        let fields: any = {}
+                        const fields: any = {}
                         Object.keys(newMetadata).forEach((field: string)=>{
                             // @ts-ignore
                             fields["metadata."+field] = newMetadata[field]
@@ -389,8 +389,8 @@ class MongoFileTree{
                         await this._db.collection(this._bucketName+".files").updateMany({"metadata.path":filePath},{$set:fields})
                     }
                     if(deleteFields){
-                        
-                        let fields: any = {}
+
+                        const fields: any = {}
                         deleteFields.forEach((field: string)=>{
                             // @ts-ignore
                             fields["metadata."+field] = ""
@@ -400,7 +400,7 @@ class MongoFileTree{
                 }
                 else{
                     if(newMetadata){
-                        let fields: any = {}
+                        const fields: any = {}
                         Object.keys(newMetadata).forEach((field: string)=>{
                             // @ts-ignore
                             fields["metadata."+field] = newMetadata[field]
@@ -408,8 +408,8 @@ class MongoFileTree{
                         await this._db.collection(this._bucketName+".files").findOneAndUpdate({"metadata.isLatest":true,"metadata.path":filePath},{$set:fields})
                     }
                     if(deleteFields){
-                        
-                        let fields: any = {}
+
+                        const fields: any = {}
                         deleteFields.forEach((field: string)=>{
                             // @ts-ignore
                             fields["metadata."+field] = ""
@@ -423,11 +423,11 @@ class MongoFileTree{
         })
     }
     /**
-     * @description Update the metadata of a folder in the file tree, allowing users to add, change, or delete metadata properties from folders. 
-     * Raises an error if the user tries to change or delete the 'path' and 'parentDirectory' properties from a folder. 
+     * @description Update the metadata of a folder in the file tree, allowing users to add, change, or delete metadata properties from folders.
+     * Raises an error if the user tries to change or delete the 'path' and 'parentDirectory' properties from a folder.
      * @param {string} folderPath Absolute path of the folder that you want to change the name of
-     * @param {MetadataOptions} newMetadata Metadata properties to add or change the value of. Can have any property except the ones listed above. 
-     * @param {Array<string>} deleteFields Metadata properties to delete. Can have any property except the ones listed above. 
+     * @param {MetadataOptions} newMetadata Metadata properties to add or change the value of. Can have any property except the ones listed above.
+     * @param {Array<string>} deleteFields Metadata properties to delete. Can have any property except the ones listed above.
      * @since 1.0.0
      * @version 0.1.0
      * @example
@@ -435,7 +435,7 @@ class MongoFileTree{
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFolderMetadata("sample-folder/subfolder", {favorite:true}, ["sample-property"])
      */
-    changeFolderMetadata(folderPath: string, newMetadata?:MetadataOptions, deleteFields?:Array<string>){
+    changeFolderMetadata(folderPath: string, newMetadata?:MetadataOptions, deleteFields?:string[]){
         return new Promise<void>((resolve, reject)=>{
             this._client.connect(async ()=>{
                 // @ts-ignore
@@ -452,7 +452,7 @@ class MongoFileTree{
                 }
 
                 if(newMetadata){
-                    let fields: any = {}
+                    const fields: any = {}
                     Object.keys(newMetadata).forEach((field: string)=>{
                         // @ts-ignore
                         fields["customMetadata."+field] = newMetadata[field]
@@ -461,7 +461,7 @@ class MongoFileTree{
                 }
 
                 if(deleteFields){
-                    let fields: any = {}
+                    const fields: any = {}
                     deleteFields.forEach((field: string)=>{
                         fields["customMetadata."+field] = ""
                     })
@@ -474,10 +474,10 @@ class MongoFileTree{
     }
 
     /**
-     * @description Change the name of a folder in the file tree. This also changes its `path` metadata property accordingly, 
-     * and the `path` and `parentDirectory` metadata property of all subfolders and files in the folder. Raises an error 
-     * if the specified folder does not exist. 
-     * @param {string} newName New name for the file 
+     * @description Change the name of a folder in the file tree. This also changes its `path` metadata property accordingly,
+     * and the `path` and `parentDirectory` metadata property of all subfolders and files in the folder. Raises an error
+     * if the specified folder does not exist.
+     * @param {string} newName New name for the file
      * @param {string} folderPath Absolute path of the folder that you want to change the name of
      * @since 1.0.0
      * @version 0.1.0
@@ -494,16 +494,16 @@ class MongoFileTree{
                     return reject(new Error(`Cannot rename root directory of the file tree`))
                 }
 
-                let topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
+                const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
 
                 let newPath: string
-                
+
                 if(!topFolder && folderPath !== this._folderCollectionName){
                     return reject(new Error(`Folder with path ${folderPath} does not exist`))
                 }
 
-                let doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":topFolder?.parentDirectory+`/${newName}`}))
-                
+                const doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":topFolder?.parentDirectory+`/${newName}`}))
+
                 if(doesFolderExist){
                     return reject(new Error(`Folder with name ${newName} already exists in the current directory`))
                 }
@@ -512,35 +512,35 @@ class MongoFileTree{
 
                 if(newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
                     // @ts-ignore
-                    let errSymbol = newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]
+                    const errSymbol = newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]
                     return reject(new Error(`Character "${errSymbol}" cannot be used as part of a folder name`))
                 }
 
                 await this._db.collection(this._folderCollectionName).updateOne({"path":folderPath},{$set:{"path":newPath, "name":newName}})
-                await this._db.collection(this._folderCollectionName).updateMany({"parentDirectory":new RegExp("^"+folderPath)}, 
+                await this._db.collection(this._folderCollectionName).updateMany({"parentDirectory":new RegExp("^"+folderPath)},
                 [{$set:{"path":
                 {$replaceOne:{
-                    input:"$path", 
-                    find:folderPath, 
+                    input:"$path",
+                    find:folderPath,
                     replacement:newPath}},
                 "parentDirectory":
                 {$replaceOne:{
-                    input:"$parentDirectory", 
-                    find:folderPath, 
+                    input:"$parentDirectory",
+                    find:folderPath,
                     replacement:newPath}},
                 "name":newName
                 }}])
 
-                await this._db.collection(this._bucketName+'.files').updateMany({"metadata.parentDirectory":new RegExp("^"+folderPath)}, 
+                await this._db.collection(this._bucketName+'.files').updateMany({"metadata.parentDirectory":new RegExp("^"+folderPath)},
                 [{$set:{"metadata.path":
                 {$replaceOne:{
-                    input:"$metadata.path", 
-                    find:folderPath, 
+                    input:"$metadata.path",
+                    find:folderPath,
                     replacement:newPath}},
                 "metadata.parentDirectory":
                 {$replaceOne:{
-                    input:"$metadata.parentDirectory", 
-                    find:folderPath, 
+                    input:"$metadata.parentDirectory",
+                    find:folderPath,
                     replacement:newPath}}
                 }}])
 
@@ -551,17 +551,17 @@ class MongoFileTree{
     }
 
     /**
-     * @description Changes the current working directory of the file tree to the absolute path of the directory 
-     * specified by the `path` parameter, which is the folder where files uploaded by the `uploadFile` method and where new folders 
-     * created by the `createFolder` method will be located. Will raise an error if a directory with 
-     * the specified path does not exist. 
-     * @param {string} path If parameter `isRelative` is false, or not provided, `path` should be a 
-     * string representing the absolute path of a directory that exists in the collection specified by the 
-     * `folderCollectionName` property. If parameter `isRelative` is true, `path` is assumed to be relative 
+     * @description Changes the current working directory of the file tree to the absolute path of the directory
+     * specified by the `path` parameter, which is the folder where files uploaded by the `uploadFile` method and where new folders
+     * created by the `createFolder` method will be located. Will raise an error if a directory with
+     * the specified path does not exist.
+     * @param {string} path If parameter `isRelative` is false, or not provided, `path` should be a
+     * string representing the absolute path of a directory that exists in the collection specified by the
+     * `folderCollectionName` property. If parameter `isRelative` is true, `path` is assumed to be relative
      * to the current working directory. The 'root directory' will have the same name as the `folderCollectionName`
-     * property. 
-     * @param {boolean} isRelative If true, parameter `path` must be relative to the current working directory. If false, which is the default value, 
-     * parameter `path` must be the absolute path of a file. 
+     * property.
+     * @param {boolean} isRelative If true, parameter `path` must be relative to the current working directory. If false, which is the default value,
+     * parameter `path` must be the absolute path of a file.
      * @since 1.0.0
      * @version 0.1.0
      * @example
@@ -582,7 +582,7 @@ class MongoFileTree{
                 else{
                     absolutePath = this._currentWorkingDirectory+"/"+path
                 }
-                let folder = await this._db.collection(this._folderCollectionName).findOne({"path":absolutePath})
+                const folder = await this._db.collection(this._folderCollectionName).findOne({"path":absolutePath})
                 if(folder || absolutePath === this._folderCollectionName){
                     this._currentWorkingDirectory = absolutePath
                     resolve()
@@ -594,12 +594,12 @@ class MongoFileTree{
         })
     }
     /**
-     * @description Deletes a folder from the file tree, including all versions of the files in it and its subfolders. 
-     * If current working directory is about to be deleted, and it is not the root directory, raises en error. 
-     * @param {string} folderPath Absolute path of a folder that exists in the collection 
+     * @description Deletes a folder from the file tree, including all versions of the files in it and its subfolders.
+     * If current working directory is about to be deleted, and it is not the root directory, raises en error.
+     * @param {string} folderPath Absolute path of a folder that exists in the collection
      * specified by the `folderCollectionName` property, or the name of the folder storage collection (`folderCollectionName`)
      * If `folderPath` is the same as `folderCollectionName`, the collection is not deleted, but all documents in it and
-     * files in the associated GridFS bucket of the file tree will still be deleted. 
+     * files in the associated GridFS bucket of the file tree will still be deleted.
      * @since 1.0.0
      * @version 0.1.0
      * @example
@@ -614,15 +614,15 @@ class MongoFileTree{
                 if(this._currentWorkingDirectory.match(folderPath) && folderPath !== this._folderCollectionName ){
                     return reject(new Error(`Cannot delete current working directory (${this._currentWorkingDirectory})`))
                 }
-                
-                let topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
+
+                const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
 
                 if(!topFolder && folderPath !== this._folderCollectionName){
                     return reject(new Error(`Folder with path ${folderPath} does not exist`))
                 }
 
-                let allFiles: Array<GridFSFile> = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
-                
+                const allFiles: GridFSFile[] = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
+
 
                 for(let i=0; i<allFiles.length; i++){
                     await this.deleteFile(allFiles[i].metadata?.path)
@@ -638,8 +638,8 @@ class MongoFileTree{
         })
     }
     /**
-     * @description Deletes all the versions of a file from the GridFS bucket of the file tree. 
-     * @param {string} filePath Absolute path to a file that exists in the bucket specified by the `bucket` 
+     * @description Deletes all the versions of a file from the GridFS bucket of the file tree.
+     * @param {string} filePath Absolute path to a file that exists in the bucket specified by the `bucket`
      * property on the `FileTree` class
      * @since 1.0.0
      * @version 0.1.0
@@ -651,12 +651,12 @@ class MongoFileTree{
     deleteFile(filePath: string){
         return new Promise<void>((resolve, reject)=>{
             this._client.connect(async ()=>{
-                let allFileVersions = this._bucket.find({"metadata.path":filePath})
+                const allFileVersions = this._bucket.find({"metadata.path":filePath})
                 if(!(await allFileVersions.hasNext())){
                     return reject(new Error(`File with path ${filePath} does not exist`))
                 }
 
-                let allFileVersionsArr = await allFileVersions.toArray()
+                const allFileVersionsArr = await allFileVersions.toArray()
                 for(let i=0; i<allFileVersionsArr.length; i++){
                     await this._bucket.delete(allFileVersionsArr[i]._id)
                 }
