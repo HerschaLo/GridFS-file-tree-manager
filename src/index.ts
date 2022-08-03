@@ -64,7 +64,7 @@ type MetadataOptions = Omit<object, "path" | "parentDirectory"| "isLatest">
  * The `currentWorkingDirectory` property will be the root directory when initialized.
  * The methods on this class to upload files and create folders automatically puts them under the
  * current working directory.
- * Note: this class automatically connects to MongoDB for all methods. 
+ * Note: this class automatically connects to MongoDB for all methods.
  */
 class MongoFileTree{
 
