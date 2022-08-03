@@ -1,5 +1,8 @@
 GridFS-file-tree-manager
 =====
+
+[![CodeFactor](https://www.codefactor.io/repository/github/herschalo/gridfs-file-tree-manager/badge)](https://www.codefactor.io/repository/github/herschalo/gridfs-file-tree-manager)
+
 A small package for creating and interacting with file trees for files stored in MongoDB using GridFS. Documentation can be found here: https://herschalo.github.io/GridFS-file-tree-manager/ 
 
 ```javascript
