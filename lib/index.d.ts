@@ -33,10 +33,10 @@ declare type MetadataOptions = Omit<object, "path" | "parentDirectory" | "isLate
  * "uploadDate" : <timestamp>,
  * "filename" : <string>,
  * "metadata" : {
-    "parentDirectory":<string>, //Absolute path of the folder where the file is located
-    "path":<string>, //Absolute path of the file
-    "isLatest":<boolean>, //Is this the latest version of the file or not
-     ...
+ *      "parentDirectory":<string>, //Absolute path of the folder where the file is located
+ *      "path":<string>, //Absolute path of the file
+ *      "isLatest":<boolean>, //Is this the latest version of the file or not
+ *      ...
  *  },
  * }
  * ```
@@ -63,7 +63,8 @@ declare type MetadataOptions = Omit<object, "path" | "parentDirectory" | "isLate
  * The `currentWorkingDirectory` property will be the root directory when initialized.
  * The methods on this class to upload files and create folders automatically puts them under the
  * current working directory.
- * Note: this class automatically connects to MongoDB for all methods. */
+ * Note: this class automatically connects to MongoDB for all methods.
+ */
 declare class MongoFileTree {
     private _currentWorkingDirectory;
     private _bucket;
@@ -121,7 +122,7 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * //Creates new folder with path sample-folder/subfolder-sample
      * let result = await fileTree.createFolder("subfolder-sample") //MongoDB InsertOneResult with the id of the document representing the folder
      */
@@ -134,7 +135,7 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * let stream = await fileTree.getFileReadStream("sample-folder/sample.txt")
      */
     getFileReadStream(filePath: string): Promise<GridFSBucketReadStream>;
@@ -148,11 +149,11 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * //Returns an array of bytes (numbers between 255 and 0) representing the data of the zip file
      * let zip = await fileTree.downloadFolder("sample-folder/subfolder-sample", "array")
      */
-    downloadFolder(folderPath: string, returnType: OutputType): Promise<String | Buffer | Uint8Array | Blob | ArrayBuffer | Number[]>;
+    downloadFolder(folderPath: string, returnType: OutputType): Promise<string | Buffer | Uint8Array | Blob | ArrayBuffer | number[]>;
     /**
      * @description Upload a file to the GridFS Bucket file tree, with the parent directory of the file being
      * the current working directory of the file tree.
@@ -169,7 +170,7 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * // id of the file in file tree GridFS bucket
      * let id = await fileTree.uploadFile(fs.createReadStream("sample.txt"), {name:"sample.txt", chunkSize:1048576, customMetadata:{favourite:true}})
      */
@@ -182,7 +183,7 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFileName("new-file-name", "sample-folder/old-file-name.txt") //File now has path sample-folder/new-file-name.txt
      */
     changeFileName(newName: string, filePath: string): Promise<void>;
@@ -198,10 +199,10 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFileMetadata("sample-folder/sample.txt", {favourite:true}, ["sample-property"], true)
      */
-    changeFileMetadata(filePath: string, newMetadata?: MetadataOptions, deleteFields?: Array<string>, changeForAllVersions?: boolean): Promise<void>;
+    changeFileMetadata(filePath: string, newMetadata?: MetadataOptions, deleteFields?: string[], changeForAllVersions?: boolean): Promise<void>;
     /**
      * @description Update the metadata of a folder in the file tree, allowing users to add, change, or delete metadata properties from folders.
      * Raises an error if the user tries to change or delete the 'path' and 'parentDirectory' properties from a folder.
@@ -212,10 +213,10 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFolderMetadata("sample-folder/subfolder", {favorite:true}, ["sample-property"])
      */
-    changeFolderMetadata(folderPath: string, newMetadata?: MetadataOptions, deleteFields?: Array<string>): Promise<void>;
+    changeFolderMetadata(folderPath: string, newMetadata?: MetadataOptions, deleteFields?: string[]): Promise<void>;
     /**
      * @description Change the name of a folder in the file tree. This also changes its `path` metadata property accordingly,
      * and the `path` and `parentDirectory` metadata property of all subfolders and files in the folder. Raises an error
@@ -226,12 +227,12 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFolderName("new-folder-name", "sample-folder/sample-folder-2")
      */
     changeFolderName(newName: string, folderPath: string): Promise<void>;
     /**
-     * @description Changes the current working directory of the folder system to the absolute path of the directory
+     * @description Changes the current working directory of the file tree to the absolute path of the directory
      * specified by the `path` parameter, which is the folder where files uploaded by the `uploadFile` method and where new folders
      * created by the `createFolder` method will be located. Will raise an error if a directory with
      * the specified path does not exist.
@@ -246,7 +247,7 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * //Absolute path, current working directory is now "sample-folder/subfolder-sample"
      * await fileTree.changeDirectory("sample-folder/subfolder-sample")
      * //Relative path; absolute path of current working directory is now "sample-folder/subfolder-sample/subfolder-sample-2"
@@ -264,7 +265,7 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.deleteFolder("sample-folder/subfolder-sample")
      */
     deleteFolder(folderPath: string): Promise<void>;
@@ -276,7 +277,7 @@ declare class MongoFileTree {
      * @version 0.1.0
      * @example
      *
-     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-system-management-sample", "sample-bucket", "sample-folder")
+     * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.deleteFile("sample-folder/sample.txt")
      */
     deleteFile(filePath: string): Promise<void>;

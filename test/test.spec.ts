@@ -1,4 +1,4 @@
-const chai = require("chai")
+import chai from "chai"
 
 const expect = chai.expect
 import fs from "fs"
@@ -17,28 +17,12 @@ const bucketName = "bucket-test"
 const folderSystem = new MongoFileTree("mongodb://localhost:27017", dbName, bucketName, folderCollectionName)
 
 describe("MongoFileTree", function(){
-    it('should export the MongoFileTree class', function(){
-        expect(MongoFileTree).to.exist
-        expect(MongoFileTree).to.be.a('function')
-        expect(MongoFileTree.prototype.deleteFile).to.exist
-        expect(MongoFileTree.prototype.deleteFolder).to.exist
-        expect(MongoFileTree.prototype.createFolder).to.exist
-        expect(MongoFileTree.prototype.uploadFile).to.exist
-        expect(MongoFileTree.prototype.getFileReadStream).to.exist
-        expect(MongoFileTree.prototype.downloadFolder).to.exist
-
-        expect(JSON.stringify(folderSystem.db)).to.be.equal(JSON.stringify(client.db(dbName)))
-        expect(folderSystem.folderCollectionName).to.be.equal(folderCollectionName)
-        expect(folderSystem.bucketName).to.be.equal(bucketName)
-        expect(JSON.stringify(folderSystem.bucket)).to.be.equal(JSON.stringify(new GridFSBucket(client.db(dbName), {bucketName})))
-    })
-
-    it('should allow users to upload files', async function(){
+    it('should allow users to upload files', async ()=>{
         const fileId = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576, customMetadata:{starred:false}})
 
         await folderSystem.client.connect()
 
-        let file1 = (await folderSystem.bucket.find({_id:fileId}).toArray())[0]
+        const file1 = (await folderSystem.bucket.find({_id:fileId}).toArray())[0]
         expect(file1.filename).to.be.equal("test.txt")
         expect(file1.metadata?.isLatest).to.be.equal(true)
         expect(file1.metadata?.path).to.be.equal("folder-test/test.txt")
@@ -48,7 +32,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should track which version of a file is the latest', async function(){
+    it('should track which version of a file is the latest', async ()=>{
         const fileId1 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576})
 
         await folderSystem.client.connect()
@@ -71,7 +55,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw error when uploading if user does not provide valid readable stream , the file name contains invalid characters', async function(){
+    it('should throw error when uploading if user does not provide valid readable stream , the file name contains invalid characters', async ()=>{
         let err: any
 
         try{
@@ -82,7 +66,6 @@ describe("MongoFileTree", function(){
         catch(e){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Argument for parameter fileStream is not a valid readable stream")
 
@@ -95,13 +78,12 @@ describe("MongoFileTree", function(){
         catch(e){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal(`Character "/" cannot be used as part of a file name`)
         folderSystem.client.close()
     })
 
-    it('should allow users to create folders', async function(){
+    it('should allow users to create folders', async ()=>{
         await folderSystem.client.connect()
         const folderId = (await folderSystem.createFolder("subfolder-test")).insertedId
         const folder = (await folderSystem.db.collection(folderSystem.folderCollectionName).find({_id:folderId}).toArray())[0]
@@ -113,7 +95,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user tries to create a folder with a name that already exists in the current directory or has invalid characters in its name', async function(){
+    it('should throw an error if the user tries to create a folder with a name that already exists in the current directory or has invalid characters in its name', async ()=>{
         await folderSystem.client.connect()
         let err: any
 
@@ -124,7 +106,6 @@ describe("MongoFileTree", function(){
             err = e
         }
 
-        expect(err).to.exist
         expect(err.message).to.be.equal("Folder with this name already exists in the current directory")
         err = undefined
 
@@ -135,12 +116,11 @@ describe("MongoFileTree", function(){
             err = e
         }
 
-        expect(err).to.exist
         expect(err.message).to.be.equal(`Character " " cannot be used as part of a folder name`)
         folderSystem.client.close()
     })
 
-    it('should allow users to set the current working directory', async function(){
+    it('should allow users to set the current working directory', async ()=>{
         await folderSystem.client.connect()
         await folderSystem.changeDirectory("subfolder-test", true)
         expect(folderSystem.currentWorkingDirectory).to.be.equal("folder-test/subfolder-test")
@@ -149,7 +129,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user tries to set the current working directory to a folder that does not exist', async function(){
+    it('should throw an error if the user tries to set the current working directory to a folder that does not exist', async ()=>{
         await folderSystem.client.connect()
         let err: any
 
@@ -160,13 +140,12 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Folder with path invalid-path does not exist")
         folderSystem.client.close()
     })
 
-    it('should allow users to change the name of a file', async function(){
+    it('should allow users to change the name of a file', async ()=>{
         await folderSystem.client.connect()
         await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
         await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
@@ -176,7 +155,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user tries to change the name of a file that does not exist or the new name contains invalid characters', async function(){
+    it('should throw an error if the user tries to change the name of a file that does not exist or the new name contains invalid characters', async ()=>{
         await folderSystem.client.connect()
         let err: any
 
@@ -187,7 +166,6 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("File with path invalid-path does not exist")
         err = undefined
@@ -199,13 +177,12 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal(`Character "/" cannot be used as part of a file name`)
         folderSystem.client.close()
     })
 
-    it('should allow users to download files', async function(){
+    it('should allow users to download files', async ()=>{
         await folderSystem.client.connect()
         const fileDataStream = await folderSystem.getFileReadStream("folder-test/test.txt")
         let data = ""
@@ -224,7 +201,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw an error if a user tries to download a file that does not exist', async function(){
+    it('should throw an error if a user tries to download a file that does not exist', async ()=>{
 
         let err: any
 
@@ -235,13 +212,12 @@ describe("MongoFileTree", function(){
         catch(e){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("File with path invalid-file-path does not exist")
         folderSystem.client.close()
     })
 
-    it('should allow users to change the metadata of files', async function(){
+    it('should allow users to change the metadata of files', async ()=>{
         await folderSystem.changeFileMetadata("folder-test/test.txt", {favourite:true})
         expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.favourite":true}).toArray()).length).to.be.equal(1)
         await folderSystem.changeFileMetadata("folder-test/test.txt", {encoding:"UTF-8"}, ["favourite"], true)
@@ -250,7 +226,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it("should raise an error if the user tries to change the 'isLatest', 'path', or 'parentDirectory' metadata properties on files", async function(){
+    it("should raise an error if the user tries to change the 'isLatest', 'path', or 'parentDirectory' metadata properties on files", async ()=>{
         await folderSystem.client.connect()
         let err: any
 
@@ -261,7 +237,6 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Cannot change or delete 'path' metadata property using this method")
         err = undefined
@@ -273,7 +248,6 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Cannot change or delete 'parentDirectory' metadata property using this method")
         err = undefined
@@ -285,13 +259,12 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Cannot delete or change the type of 'isLatest' metadata property using this method")
         folderSystem.client.close()
     })
 
-    it('should allow users to change the metadata of folders', async function(){
+    it('should allow users to change the metadata of folders', async ()=>{
         await folderSystem.changeFolderMetadata("folder-test/subfolder-test", {favourite:true})
         expect((await folderSystem.db.collection(folderCollectionName).find({"path":"folder-test/subfolder-test", "customMetadata.favourite":true}).toArray()).length).to.be.equal(1)
         await folderSystem.changeFolderMetadata("folder-test/subfolder-test", {folderType:"work"}, ["favourite"])
@@ -300,7 +273,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it("should raise an error if the user tries to change the 'isLatest', 'path', or 'parentDirectory' metadata properties on folders", async function(){
+    it("should raise an error if the user tries to change the 'isLatest', 'path', or 'parentDirectory' metadata properties on folders", async ()=>{
         await folderSystem.client.connect()
         let err: any
 
@@ -311,7 +284,6 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Cannot change or delete 'path' metadata property using this method")
         err = undefined
@@ -323,7 +295,6 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Cannot change or delete 'parentDirectory' metadata property using this method")
         err = undefined
@@ -335,20 +306,19 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Cannot add or delete 'isLatest' metadata property for a folder")
         folderSystem.client.close()
     })
 
-    it('should allow users to delete files', async function(){
+    it('should allow users to delete files', async ()=>{
         await folderSystem.client.connect()
         await folderSystem.deleteFile("folder-test/test.txt")
         expect(await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt"}).hasNext()).to.be.equal(false)
         folderSystem.client.close()
     })
 
-    it('should throw an error if a user tries to delete a file that does not exist', async function(){
+    it('should throw an error if a user tries to delete a file that does not exist', async ()=>{
         let err: any
 
         try{
@@ -358,13 +328,12 @@ describe("MongoFileTree", function(){
         catch(e){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("File with path invalid-file-path does not exist")
         folderSystem.client.close()
     })
 
-    it('should allow users to download folders', async function(){
+    it('should allow users to download folders', async ()=>{
         await folderSystem.client.connect()
         await folderSystem.changeDirectory("subfolder-test", true)
         await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:'test.txt', chunkSize:1048576})
@@ -423,7 +392,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user tries to download a folder that does not exist', async function(){
+    it('should throw an error if the user tries to download a folder that does not exist', async ()=>{
         let err: any
 
         try{
@@ -433,13 +402,12 @@ describe("MongoFileTree", function(){
         catch(e){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Folder with path invalid-folder-path does not exist")
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user provides an invalid argument for returnType when trying to download a folder', async function(){
+    it('should throw an error if the user provides an invalid argument for returnType when trying to download a folder', async ()=>{
         let err: any
 
         try{
@@ -450,13 +418,12 @@ describe("MongoFileTree", function(){
         catch(e){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal(`Invalid argument for parameter returnType. Argument must either be 'base64','nodebuffer', 'array', 'uint8array','arraybuffer', 'blob', or 'binarystring'.`)
         folderSystem.client.close()
     })
 
-    it('should allow users to rename folders', async function(){
+    it('should allow users to rename folders', async ()=>{
         await folderSystem.client.connect()
         await folderSystem.changeFolderName("new-folder-name", "folder-test/subfolder-test")
         expect(Boolean(await folderSystem.db.collection(folderCollectionName).findOne({"path":"folder-test/new-folder-name", "name":"new-folder-name"}))).to.be.equal(true)
@@ -469,7 +436,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user tries to change the name of a folder that does not exist,  the new folder name contains invalid characters, or the user attempts to rename the root directory', async function(){
+    it('should throw an error if the user tries to change the name of a folder that does not exist,  the new folder name contains invalid characters, or the user attempts to rename the root directory', async ()=>{
         await folderSystem.client.connect()
         let err: any
 
@@ -480,7 +447,6 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Folder with path invalid-path does not exist")
         err = undefined
@@ -492,7 +458,6 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal(`Character "$" cannot be used as part of a folder name`)
         err = undefined
@@ -504,13 +469,12 @@ describe("MongoFileTree", function(){
         catch(e: any){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Cannot rename root directory of the file tree")
         folderSystem.client.close()
     })
 
-    it('should allow users to delete folders', async function(){
+    it('should allow users to delete folders', async ()=>{
         await folderSystem.client.connect()
 
         await folderSystem.deleteFolder("folder-test/new-folder-name")
@@ -529,7 +493,7 @@ describe("MongoFileTree", function(){
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user tries to delete a folder that does not exist', async function(){
+    it('should throw an error if the user tries to delete a folder that does not exist', async ()=>{
         let err: any
 
         try{
@@ -539,14 +503,13 @@ describe("MongoFileTree", function(){
         catch(e){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Folder with path invalid-folder-path does not exist")
 
         folderSystem.client.close()
     })
 
-    it('should throw an error if the user tries to delete the current working directory', async function(){
+    it('should throw an error if the user tries to delete the current working directory', async ()=>{
 
         await folderSystem.createFolder("new-folder")
 
@@ -560,7 +523,6 @@ describe("MongoFileTree", function(){
         catch(e){
             err = e
         }
-        expect(err).to.exist
 
         expect(err.message).to.be.equal("Cannot delete current working directory (folder-test/new-folder)")
 
