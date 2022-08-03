@@ -19,6 +19,7 @@
     "type": "git",
     "url": "https://github.com/HerschaLo/GridFS-file-tree-manager"
   },
+  "types": "./index.d.ts",
   "dependencies": {
     "jszip": "^3.10.0",
     "mongodb": "^4.7.0"

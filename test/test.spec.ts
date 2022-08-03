@@ -8,7 +8,7 @@ import {Readable} from "stream"
 import extract from "extract-zip"
 const client = new MongoClient("mongodb://localhost:27017")
 
-const dbName = "GridFS-folder-management-test"
+const dbName = "GridFS-file-tree-management-test"
 
 const folderCollectionName = "folder-test"
 
@@ -16,8 +16,8 @@ const bucketName = "bucket-test"
 
 const folderSystem = new MongoFileTree("mongodb://localhost:27017", dbName, bucketName, folderCollectionName)
 
-describe("FolderTree", function(){
-    it('should export the FolderTree class', function(){
+describe("MongoFileTree", function(){
+    it('should export the MongoFileTree class', function(){
         expect(MongoFileTree).to.exist
         expect(MongoFileTree).to.be.a('function')
         expect(MongoFileTree.prototype.deleteFile).to.exist
@@ -33,31 +33,17 @@ describe("FolderTree", function(){
         expect(JSON.stringify(folderSystem.bucket)).to.be.equal(JSON.stringify(new GridFSBucket(client.db(dbName), {bucketName})))
     })
 
-    it('should allow users to upload files and track which version of a file is the latest', async function(){
-        const fileId1 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576, customMetadata:{starred:false}})
+    it('should allow users to upload files', async function(){
+        const fileId = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576, customMetadata:{starred:false}})
 
         await folderSystem.client.connect()
 
-        let file1 = (await folderSystem.bucket.find({_id:fileId1}).toArray())[0]
+        let file1 = (await folderSystem.bucket.find({_id:fileId}).toArray())[0]
         expect(file1.filename).to.be.equal("test.txt")
         expect(file1.metadata?.isLatest).to.be.equal(true)
         expect(file1.metadata?.path).to.be.equal("folder-test/test.txt")
         expect(file1.metadata?.parentDirectory).to.be.equal(folderCollectionName)
         expect(file1.metadata?.starred).to.be.equal(false)
-
-        const fileId2 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576, customMetadata:{starred:false}})
-
-        const file2 = (await folderSystem.bucket.find({_id:fileId2}).toArray())[0]
-        expect(file2.filename).to.be.equal("test.txt")
-        expect(file2.metadata?.isLatest).to.be.equal(true)
-        expect(file2.metadata?.path).to.be.equal("folder-test/test.txt")
-        expect(file2.metadata?.parentDirectory).to.be.equal(folderCollectionName)
-
-        file1 = (await folderSystem.bucket.find({_id:fileId1}).toArray())[0]
-        expect(file1.filename).to.be.equal("test.txt")
-        expect(file1.metadata?.isLatest).to.be.equal(false)
-        expect(file1.metadata?.path).to.be.equal("folder-test/test.txt")
-        expect(file1.metadata?.parentDirectory).to.be.equal(folderCollectionName)
 
         folderSystem.client.close()
     })
@@ -259,7 +245,7 @@ describe("FolderTree", function(){
         await folderSystem.changeFileMetadata("folder-test/test.txt", {favourite:true})
         expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.favourite":true}).toArray()).length).to.be.equal(1)
         await folderSystem.changeFileMetadata("folder-test/test.txt", {encoding:"UTF-8"}, ["favourite"], true)
-        expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.encoding":"UTF-8"}).toArray()).length).to.be.equal(4)
+        expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.encoding":"UTF-8"}).toArray()).length).to.be.equal(3)
         expect(await folderSystem.bucket.find({"metadata.path":"folder-test/test.txt", "metadata.favourite":true}).hasNext()).to.be.equal(false)
         folderSystem.client.close()
     })

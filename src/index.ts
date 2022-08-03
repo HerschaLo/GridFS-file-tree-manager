@@ -34,10 +34,10 @@ type MetadataOptions = Omit<object, "path" | "parentDirectory"| "isLatest">
  * "uploadDate" : <timestamp>,
  * "filename" : <string>,
  * "metadata" : {
-    "parentDirectory":<string>, //Absolute path of the folder where the file is located
-    "path":<string>, //Absolute path of the file
-    "isLatest":<boolean>, //Is this the latest version of the file or not
-     ...
+ *      "parentDirectory":<string>, //Absolute path of the folder where the file is located
+ *      "path":<string>, //Absolute path of the file
+ *      "isLatest":<boolean>, //Is this the latest version of the file or not
+ *      ...
  *  },
  * }
  * ```
@@ -64,7 +64,8 @@ type MetadataOptions = Omit<object, "path" | "parentDirectory"| "isLatest">
  * The `currentWorkingDirectory` property will be the root directory when initialized.
  * The methods on this class to upload files and create folders automatically puts them under the
  * current working directory.
- * Note: this class automatically connects to MongoDB for all methods. */
+ * Note: this class automatically connects to MongoDB for all methods. 
+ */
 class MongoFileTree{
 
     private _currentWorkingDirectory: string
@@ -214,12 +215,12 @@ class MongoFileTree{
      * let zip = await fileTree.downloadFolder("sample-folder/subfolder-sample", "array")
      */
     downloadFolder(folderPath: string, returnType: OutputType){
-        return new Promise<Buffer|Uint8Array|String|Blob|Number[]|ArrayBuffer>((resolve, reject)=>{
+        return new Promise<Buffer|Uint8Array|string|Blob|number[]|ArrayBuffer>((resolve, reject)=>{
             this._client.connect(async ()=>{
                 const folderZip = new JSZip()
 
                 const downloadAsync = async (file: GridFSFile): Promise<void> =>{
-                    return new Promise<void>((resolve, reject)=>{
+                    return new Promise<void>((resolveFileDownload)=>{
                         const downloadStream = this._bucket.openDownloadStream(file._id)
                         let data = ''
                         downloadStream.on("data",(chunk)=>{
@@ -227,7 +228,7 @@ class MongoFileTree{
                         })
                         downloadStream.on("end",()=>{
                             folderZip.file(file.metadata?.path.slice(folderPath.length+1), data, {createFolders:true, base64:true})
-                            resolve()
+                            resolveFileDownload()
                         })
                     })
                 }
@@ -245,8 +246,8 @@ class MongoFileTree{
                 const allFiles: GridFSFile[] = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
 
 
-                for(let i=0; i<allFiles.length; i++){
-                    await downloadAsync(allFiles[i])
+                for(const file of allFiles){
+                    await downloadAsync(file)
                 }
                 return resolve(await folderZip.generateAsync({type:returnType}))
             })
@@ -624,8 +625,8 @@ class MongoFileTree{
                 const allFiles: GridFSFile[] = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
 
 
-                for(let i=0; i<allFiles.length; i++){
-                    await this.deleteFile(allFiles[i].metadata?.path)
+                for(const file of allFiles){
+                    await this.deleteFile(file.metadata?.path)
                 }
                 await this._db.collection(this._folderCollectionName).deleteMany({"parentDirectory":new RegExp("^"+folderPath)})
 
@@ -657,8 +658,8 @@ class MongoFileTree{
                 }
 
                 const allFileVersionsArr = await allFileVersions.toArray()
-                for(let i=0; i<allFileVersionsArr.length; i++){
-                    await this._bucket.delete(allFileVersionsArr[i]._id)
+                for(const file of allFileVersionsArr){
+                    await this._bucket.delete(file._id)
                 }
                 resolve()
             })
