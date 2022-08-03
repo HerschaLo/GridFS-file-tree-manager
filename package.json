@@ -1,6 +1,6 @@
 {
   "name": "gridfs-file-tree-manager",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "lib/index.js",
   "directories": {
     "test": "test"
@@ -24,6 +24,10 @@
     "jszip": "^3.10.0",
     "mongodb": "^4.7.0"
   },
+  "files": [
+    "/lib",
+    "/src"
+  ],
   "devDependencies": {
     "@types/chai": "^4.3.1",
     "@types/mocha": "^9.1.1",
