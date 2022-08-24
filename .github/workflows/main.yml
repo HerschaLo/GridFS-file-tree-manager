@@ -1,0 +1,32 @@
+name: Default actions on commit
+on:
+  push:
+      branches: [ main ]
+  pull_request:
+      branches: [ main ]
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [10.x, 12.x, 14.x, 15.x]
+        mongodb-version: ['4.2', '4.4', '5.0', '6.0']
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: npm install
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.7.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+          mongodb-port: 27017
+      - name: Run tests
+        run: npm test
