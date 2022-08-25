@@ -29,4 +29,5 @@ jobs:
           mongodb-version: ${{ matrix.mongodb-version }}
           mongodb-port: 27017
       - name: Run tests
+        working-directory: ${{ GITHUB_WORKSPACE }}
         run: npm test

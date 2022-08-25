@@ -173,6 +173,7 @@ describe("MongoFileTree", function(){
     it('should allow users to change the name of a file', async ()=>{
         await folderSystem.client.connect()
         await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
+        console.log(process.cwd())
         await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
         await folderSystem.changeFileName("new-file-name.txt", "folder-test/test-2.txt")
         expect((await folderSystem.bucket.find({"metadata.path":"folder-test/new-file-name.txt"}).toArray()).length).to.be.equal(2)
@@ -384,7 +385,7 @@ describe("MongoFileTree", function(){
             })
         })
 
-        await extract(process.cwd()+"/test_output/test.zip", {dir:process.cwd()+"\\test_output"})
+        await extract(process.cwd()+"/test_output/test.zip", {dir:process.cwd()+"/test_output"})
 
         expect(fs.readFileSync(process.cwd()+"/test_output/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
         expect(fs.readFileSync(process.cwd()+"/test_output/test.PNG").equals(fs.readFileSync(process.cwd()+"/test/test.PNG"))).to.be.equal(true)
