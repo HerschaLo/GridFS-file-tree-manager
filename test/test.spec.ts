@@ -408,7 +408,7 @@ describe("MongoFileTree", function(){
             })
         })
 
-        await extract(process.cwd()+"/test_output_2/whole-collection-test.zip", {dir:process.cwd()+"\\test_output_2"})
+        await extract(process.cwd()+"/test_output_2/whole-collection-test.zip", {dir:process.cwd()+"/test_output_2"})
 
         expect(fs.readFileSync(process.cwd()+"/test_output_2/subfolder-test/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
         expect(fs.readFileSync(process.cwd()+"/test_output_2/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
