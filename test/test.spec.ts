@@ -18,7 +18,7 @@ const folderSystem = new MongoFileTree("mongodb://localhost:27017", dbName, buck
 
 describe("MongoFileTree", function(){
     it('should allow users to upload files', async ()=>{
-        const fileId = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576, customMetadata:{starred:false}})
+        const fileId = await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test.txt", chunkSize:1048576, customMetadata:{starred:false}})
 
         await folderSystem.client.connect()
 
@@ -33,12 +33,12 @@ describe("MongoFileTree", function(){
     })
 
     it('should track which version of a file is the latest', async ()=>{
-        const fileId1 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576})
+        const fileId1 = await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test.txt", chunkSize:1048576})
 
         await folderSystem.client.connect()
 
 
-        const fileId2 = await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576})
+        const fileId2 = await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test.txt", chunkSize:1048576})
 
         const file2 = (await folderSystem.bucket.find({_id:fileId2}).toArray())[0]
         expect(file2.filename).to.be.equal("test.txt")
@@ -72,7 +72,7 @@ describe("MongoFileTree", function(){
         err = undefined
         try{
             // @ts-ignore
-           await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test/txt", chunkSize:1048576})
+           await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test/txt", chunkSize:1048576})
         }
 
         catch(e){
@@ -84,7 +84,7 @@ describe("MongoFileTree", function(){
         err = undefined
         try{
             // @ts-ignore
-           await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {chunkSize:1048576})
+           await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {chunkSize:1048576})
         }
 
         catch(e){
@@ -96,7 +96,7 @@ describe("MongoFileTree", function(){
         err = undefined
         try{
             // @ts-ignore
-           await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test/txt"})
+           await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test/txt"})
         }
 
         catch(e){
@@ -172,8 +172,8 @@ describe("MongoFileTree", function(){
 
     it('should allow users to change the name of a file', async ()=>{
         await folderSystem.client.connect()
-        await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
-        await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
+        await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
+        await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
         await folderSystem.changeFileName("new-file-name.txt", "folder-test/test-2.txt")
         expect((await folderSystem.bucket.find({"metadata.path":"folder-test/new-file-name.txt"}).toArray()).length).to.be.equal(2)
         expect((await folderSystem.bucket.find({"metadata.path":"folder-test/test-2.txt"}).toArray()).length).to.be.equal(0)
@@ -363,18 +363,18 @@ describe("MongoFileTree", function(){
     it('should allow users to download folders', async ()=>{
         await folderSystem.client.connect()
         await folderSystem.changeDirectory("subfolder-test", true)
-        await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:'test.txt', chunkSize:1048576})
-        await folderSystem.uploadFile(fs.createReadStream("./test/test.PNG"), {name:'test.PNG', chunkSize:1048576})
+        await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:'test.txt', chunkSize:1048576})
+        await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.PNG"), {name:'test.PNG', chunkSize:1048576})
         await folderSystem.createFolder("subfolder-test-2")
         await folderSystem.changeDirectory("subfolder-test-2", true)
-        await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:'test.txt', chunkSize:1048576})
+        await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:'test.txt', chunkSize:1048576})
         await folderSystem.createFolder("subfolder-test-3")
         await folderSystem.changeDirectory("subfolder-test-3", true)
-        await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:'test.txt', chunkSize:1048576})
+        await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:'test.txt', chunkSize:1048576})
 
         const zip: any = await folderSystem.downloadFolder("folder-test/subfolder-test", "nodebuffer")
         const readStream = Readable.from(zip)
-        const writeStream = fs.createWriteStream("./test_output/test.zip")
+        const writeStream = fs.createWriteStream(process.cwd()+"/test_output/test.zip")
 
         readStream.pipe(writeStream)
 
@@ -384,20 +384,20 @@ describe("MongoFileTree", function(){
             })
         })
 
-        await extract("./test_output/test.zip", {dir:process.cwd()+"\\test_output"})
+        await extract(process.cwd()+"/test_output/test.zip", {dir:process.cwd()+"\\test_output"})
 
-        expect(fs.readFileSync("./test_output/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
-        expect(fs.readFileSync("./test_output/test.PNG").equals(fs.readFileSync("./test/test.PNG"))).to.be.equal(true)
-        expect(fs.readFileSync("./test_output/subfolder-test-2/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
-        expect(fs.readFileSync("./test_output/subfolder-test-2/subfolder-test-3/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output/test.PNG").equals(fs.readFileSync(process.cwd()+"/test/test.PNG"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output/subfolder-test-2/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output/subfolder-test-2/subfolder-test-3/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
 
 
 
         await folderSystem.changeDirectory("folder-test")
-        await folderSystem.uploadFile(fs.createReadStream("./test/test.txt"), {name:"test.txt", chunkSize:1048576})
+        await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test.txt", chunkSize:1048576})
         const zip2: any = await folderSystem.downloadFolder("folder-test", "nodebuffer")
         const readStream2 = Readable.from(zip2)
-        const writeStream2 = fs.createWriteStream("./test_output_2/whole-collection-test.zip")
+        const writeStream2 = fs.createWriteStream(process.cwd()+"/test_output_2/whole-collection-test.zip")
 
         readStream2.pipe(writeStream2)
 
@@ -407,13 +407,13 @@ describe("MongoFileTree", function(){
             })
         })
 
-        await extract("./test_output_2/whole-collection-test.zip", {dir:process.cwd()+"\\test_output_2"})
+        await extract(process.cwd()+"/test_output_2/whole-collection-test.zip", {dir:process.cwd()+"\\test_output_2"})
 
-        expect(fs.readFileSync("./test_output_2/subfolder-test/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
-        expect(fs.readFileSync("./test_output_2/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
-        expect(fs.readFileSync("./test_output_2/subfolder-test/test.PNG").equals(fs.readFileSync("./test/test.PNG"))).to.be.equal(true)
-        expect(fs.readFileSync("./test_output_2/subfolder-test/subfolder-test-2/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
-        expect(fs.readFileSync("./test_output_2/subfolder-test/subfolder-test-2/subfolder-test-3/test.txt").equals(fs.readFileSync("./test/test.txt"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output_2/subfolder-test/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output_2/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output_2/subfolder-test/test.PNG").equals(fs.readFileSync(process.cwd()+"/test/test.PNG"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output_2/subfolder-test/subfolder-test-2/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
+        expect(fs.readFileSync(process.cwd()+"/test_output_2/subfolder-test/subfolder-test-2/subfolder-test-3/test.txt").equals(fs.readFileSync(process.cwd()+"/test/test.txt"))).to.be.equal(true)
 
 
         folderSystem.client.close()
