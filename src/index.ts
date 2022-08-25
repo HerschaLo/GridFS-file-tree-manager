@@ -155,24 +155,23 @@ class MongoFileTree{
      * let result = await fileTree.createFolder("subfolder-sample") //MongoDB InsertOneResult with the id of the document representing the folder
      */
 
-    createFolder(folderName: string, customMetadata?: MetadataOptions){
+    createFolder(folderName: string, customMetadata?: MetadataOptions): Promise<InsertOneResult>{
         return new Promise<InsertOneResult>(async (resolve, reject)=>{
-            this._client.connect(async ()=>{
-                const path = this.currentWorkingDirectory+`/${folderName}`
+            await this._client.connect()
+            const path = this.currentWorkingDirectory+`/${folderName}`
 
-                const doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":path}))
-                if(doesFolderExist){
-                    return reject(new Error(`Folder with name ${folderName} already exists in the current directory`))
-                }
-                if(folderName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
-                    // @ts-ignore
-                    const errSymbol = folderName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]
-                    return reject(new Error(`Character "${errSymbol}" cannot be used as part of a folder name`))
-                }
+            const doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":path}))
+            if(doesFolderExist){
+                return reject(new Error(`Folder with name ${folderName} already exists in the current directory`))
+            }
+            if(folderName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
+                // @ts-ignore
+                const errSymbol = folderName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]
+                return reject(new Error(`Character "${errSymbol}" cannot be used as part of a folder name`))
+            }
 
-                const result =  await this._db.collection(this._folderCollectionName).insertOne({name:folderName, path, parentDirectory:this.currentWorkingDirectory, customMetadata:{...customMetadata}})
-                resolve(result)
-            })
+            const result =  await this._db.collection(this._folderCollectionName).insertOne({name:folderName, path, parentDirectory:this.currentWorkingDirectory, customMetadata:{...customMetadata}})
+            resolve(result)
         })
     }
     /**
@@ -187,16 +186,15 @@ class MongoFileTree{
      * let stream = await fileTree.getFileReadStream("sample-folder/sample.txt")
      */
 
-    getFileReadStream(filePath: string){
-        return new Promise<GridFSBucketReadStream>((resolve, reject)=>{
-            this._client.connect(async ()=>{
-                const file = (await this._bucket.find({"metadata.path":filePath, "metadata.isLatest":true}).toArray())[0]
+    getFileReadStream(filePath: string): Promise<GridFSBucketReadStream>{
+        return new Promise<GridFSBucketReadStream>(async (resolve, reject)=>{
+            await this._client.connect()
+            const file = (await this._bucket.find({"metadata.path":filePath, "metadata.isLatest":true}).toArray())[0]
 
-                if(!file){
-                    return reject(new Error(`File with path ${filePath} does not exist`))
-                }
-                resolve(this._bucket.openDownloadStream(file._id))
-            })
+            if(!file){
+                return reject(new Error(`File with path ${filePath} does not exist`))
+            }
+            resolve(this._bucket.openDownloadStream(file._id))
         })
 
     }
@@ -214,43 +212,42 @@ class MongoFileTree{
      * //Returns an array of bytes (numbers between 255 and 0) representing the data of the zip file
      * let zip = await fileTree.downloadFolder("sample-folder/subfolder-sample", "array")
      */
-    downloadFolder(folderPath: string, returnType: OutputType){
-        return new Promise<Buffer|Uint8Array|string|Blob|number[]|ArrayBuffer>((resolve, reject)=>{
-            this._client.connect(async ()=>{
-                const folderZip = new JSZip()
+    downloadFolder(folderPath: string, returnType: OutputType): Promise<Buffer|Uint8Array|string|Blob|number[]|ArrayBuffer>{
+        return new Promise<Buffer|Uint8Array|string|Blob|number[]|ArrayBuffer>(async (resolve, reject)=>{
+            await this._client.connect()
+            const folderZip = new JSZip()
 
-                const downloadAsync = async (file: GridFSFile): Promise<void> =>{
-                    return new Promise<void>((resolveFileDownload)=>{
-                        const downloadStream = this._bucket.openDownloadStream(file._id)
-                        let data = ''
-                        downloadStream.on("data",(chunk)=>{
-                            data+=chunk.toString("base64")
-                        })
-                        downloadStream.on("end",()=>{
-                            folderZip.file(file.metadata?.path.slice(folderPath.length+1), data, {createFolders:true, base64:true})
-                            resolveFileDownload()
-                        })
+            const downloadAsync = async (file: GridFSFile): Promise<void> =>{
+                return new Promise<void>((resolveFileDownload)=>{
+                    const downloadStream = this._bucket.openDownloadStream(file._id)
+                    let data = ''
+                    downloadStream.on("data",(chunk)=>{
+                        data+=chunk.toString("base64")
                     })
-                }
+                    downloadStream.on("end",()=>{
+                        folderZip.file(file.metadata?.path.slice(folderPath.length+1), data, {createFolders:true, base64:true})
+                        resolveFileDownload()
+                    })
+                })
+            }
 
-                const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
+            const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
 
-                if(!topFolder && folderPath !== this._folderCollectionName){
-                    return reject(new Error(`Folder with path ${folderPath} does not exist`))
-                }
+            if(!topFolder && folderPath !== this._folderCollectionName){
+                return reject(new Error(`Folder with path ${folderPath} does not exist`))
+            }
 
-                if(!['base64','nodebuffer', 'array', 'uint8array','arraybuffer', 'blob', 'binarystring'].includes(returnType)){
-                    return reject(new Error(`Invalid argument for parameter returnType. Argument must either be 'base64','nodebuffer', 'array', 'uint8array','arraybuffer', 'blob', or 'binarystring'.`))
-                }
+            if(!['base64','nodebuffer', 'array', 'uint8array','arraybuffer', 'blob', 'binarystring'].includes(returnType)){
+                return reject(new Error(`Invalid argument for parameter returnType. Argument must either be 'base64','nodebuffer', 'array', 'uint8array','arraybuffer', 'blob', or 'binarystring'.`))
+            }
 
-                const allFiles: GridFSFile[] = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
+            const allFiles: GridFSFile[] = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
 
 
-                for(const file of allFiles){
-                    await downloadAsync(file)
-                }
-                return resolve(await folderZip.generateAsync({type:returnType}))
-            })
+            for(const file of allFiles){
+                await downloadAsync(file)
+            }
+            return resolve(await folderZip.generateAsync({type:returnType}))
         })
     }
     /**
@@ -273,8 +270,8 @@ class MongoFileTree{
      * // id of the file in file tree GridFS bucket
      * let id = await fileTree.uploadFile(fs.createReadStream("sample.txt"), {name:"sample.txt", chunkSize:1048576, customMetadata:{favourite:true}})
      */
-    uploadFile(fileStream: Readable, options: FileOptions){
-        return new Promise<ObjectId>((resolve, reject)=>{
+    uploadFile(fileStream: Readable, options: FileOptions): Promise<ObjectId>{
+        return new Promise<ObjectId>(async (resolve, reject)=>{
             if (!(fileStream instanceof Readable)){
                 return reject(new Error("Argument for parameter fileStream is not a valid readable stream"))
             }
@@ -294,25 +291,25 @@ class MongoFileTree{
 
             const path = this.currentWorkingDirectory+`/${options.name}`
 
-            this._client.connect(()=>{
-                this._db.collection(this._bucketName+".files").findOneAndUpdate({"metadata.path":path, "metadata.isLatest":true},{$set:{"metadata.isLatest":false}})
-                const uploadStream = this._bucket.openUploadStream(options.name, {
+            await this._client.connect()
 
-                    chunkSizeBytes:options.chunkSize,
+            this._db.collection(this._bucketName+".files").findOneAndUpdate({"metadata.path":path, "metadata.isLatest":true},{$set:{"metadata.isLatest":false}})
+            const uploadStream = this._bucket.openUploadStream(options.name, {
 
-                    metadata:{
-                        parentDirectory:this.currentWorkingDirectory,
-                        path,
-                        isLatest:true,
-                        ...options.customMetadata
-                    }
+                chunkSizeBytes:options.chunkSize,
 
-                })
+                metadata:{
+                    parentDirectory:this.currentWorkingDirectory,
+                    path,
+                    isLatest:true,
+                    ...options.customMetadata
+                }
 
-                fileStream.pipe(uploadStream)
-                uploadStream.on("finish",async ()=>{
-                    resolve(uploadStream.id)
-                })
+            })
+
+            fileStream.pipe(uploadStream)
+            uploadStream.on("finish",async ()=>{
+                resolve(uploadStream.id)
             })
         })
     }
@@ -327,25 +324,24 @@ class MongoFileTree{
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFileName("new-file-name", "sample-folder/old-file-name.txt") //File now has path sample-folder/new-file-name.txt
      */
-     changeFileName(newName:string, filePath:string){
-        return new Promise<void>((resolve, reject)=>{
-            this._client.connect(async ()=>{
-                const allFileVersions = this._bucket.find({"metadata.path":filePath})
+     changeFileName(newName:string, filePath:string): Promise<void>{
+        return new Promise<void>(async (resolve, reject)=>{
+            await this._client.connect()
+            const allFileVersions = this._bucket.find({"metadata.path":filePath})
 
-                if(!(await allFileVersions.hasNext())){
-                    return reject(new Error(`File with path ${filePath} does not exist`))
-                }
+            if(!(await allFileVersions.hasNext())){
+                return reject(new Error(`File with path ${filePath} does not exist`))
+            }
 
-                if(newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
-                    // @ts-ignore
-                    return reject(new Error(`Character "${newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]}" cannot be used as part of a file name`))
-                }
+            if(newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
+                // @ts-ignore
+                return reject(new Error(`Character "${newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]}" cannot be used as part of a file name`))
+            }
 
-                const parentDirectory = (await allFileVersions.next())?.metadata?.parentDirectory
-                await this._db.collection(this.bucketName+".files").updateMany({"metadata.path":filePath},{$set:{"metadata.path":parentDirectory+`/${newName}`, "filename":newName}})
+            const parentDirectory = (await allFileVersions.next())?.metadata?.parentDirectory
+            await this._db.collection(this.bucketName+".files").updateMany({"metadata.path":filePath},{$set:{"metadata.path":parentDirectory+`/${newName}`, "filename":newName}})
 
-                resolve()
-            })
+            resolve()
 
         })
     }
@@ -365,62 +361,60 @@ class MongoFileTree{
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFileMetadata("sample-folder/sample.txt", {favourite:true}, ["sample-property"], true)
      */
-     changeFileMetadata(filePath: string, newMetadata?:MetadataOptions, deleteFields?:string[], changeForAllVersions: boolean= false){
-        return new Promise<void>((resolve, reject)=>{
-            this._client.connect(async ()=>{
-                // @ts-ignore
-                if(newMetadata?.path || deleteFields?.includes('path')){
-                    return reject(new Error("Cannot change or delete 'path' metadata property using this method" ))
+     changeFileMetadata(filePath: string, newMetadata?:MetadataOptions, deleteFields?:string[], changeForAllVersions: boolean= false): Promise<void>{
+        return new Promise<void>(async (resolve, reject)=>{
+            await this._client.connect()
+            // @ts-ignore
+            if(newMetadata?.path || deleteFields?.includes('path')){
+                return reject(new Error("Cannot change or delete 'path' metadata property using this method" ))
+            }
+            // @ts-ignore
+            if(newMetadata?.parentDirectory|| deleteFields?.includes('parentDirectory')){
+                return reject(new Error("Cannot change or delete 'parentDirectory' metadata property using this method" ))
+            }
+            // @ts-ignore
+            if(newMetadata?.isLatest || deleteFields?.includes('isLatest')){
+                return reject(new Error("Cannot delete or change the type of 'isLatest' metadata property using this method" ))
+            }
+            if(changeForAllVersions){
+                if(newMetadata){
+                    const fields: any = {}
+                    Object.keys(newMetadata).forEach((field: string)=>{
+                        // @ts-ignore
+                        fields["metadata."+field] = newMetadata[field]
+                    })
+                    await this._db.collection(this._bucketName+".files").updateMany({"metadata.path":filePath},{$set:fields})
                 }
-                // @ts-ignore
-                if(newMetadata?.parentDirectory|| deleteFields?.includes('parentDirectory')){
-                    return reject(new Error("Cannot change or delete 'parentDirectory' metadata property using this method" ))
-                }
-                // @ts-ignore
-                if(newMetadata?.isLatest || deleteFields?.includes('isLatest')){
-                    return reject(new Error("Cannot delete or change the type of 'isLatest' metadata property using this method" ))
-                }
-                if(changeForAllVersions){
-                    if(newMetadata){
-                        const fields: any = {}
-                        Object.keys(newMetadata).forEach((field: string)=>{
-                            // @ts-ignore
-                            fields["metadata."+field] = newMetadata[field]
-                        })
-                        await this._db.collection(this._bucketName+".files").updateMany({"metadata.path":filePath},{$set:fields})
-                    }
-                    if(deleteFields){
+                if(deleteFields){
 
-                        const fields: any = {}
-                        deleteFields.forEach((field: string)=>{
-                            // @ts-ignore
-                            fields["metadata."+field] = ""
-                        })
-                        await this._db.collection(this._bucketName+".files").updateMany({"metadata.path":filePath},{$unset:fields})
-                    }
+                    const fields: any = {}
+                    deleteFields.forEach((field: string)=>{
+                        // @ts-ignore
+                        fields["metadata."+field] = ""
+                    })
+                    await this._db.collection(this._bucketName+".files").updateMany({"metadata.path":filePath},{$unset:fields})
                 }
-                else{
-                    if(newMetadata){
-                        const fields: any = {}
-                        Object.keys(newMetadata).forEach((field: string)=>{
-                            // @ts-ignore
-                            fields["metadata."+field] = newMetadata[field]
-                        })
-                        await this._db.collection(this._bucketName+".files").findOneAndUpdate({"metadata.isLatest":true,"metadata.path":filePath},{$set:fields})
-                    }
-                    if(deleteFields){
-
-                        const fields: any = {}
-                        deleteFields.forEach((field: string)=>{
-                            // @ts-ignore
-                            fields["metadata."+field] = ""
-                        })
-                        await this._db.collection(this._bucketName+".files").findOneAndUpdate({"metadata.isLatest":true,"metadata.path":filePath},{$unset:fields})
-                    }
+            }
+            else{
+                if(newMetadata){
+                    const fields: any = {}
+                    Object.keys(newMetadata).forEach((field: string)=>{
+                        // @ts-ignore
+                        fields["metadata."+field] = newMetadata[field]
+                    })
+                    await this._db.collection(this._bucketName+".files").findOneAndUpdate({"metadata.isLatest":true,"metadata.path":filePath},{$set:fields})
                 }
-                resolve()
-            })
+                if(deleteFields){
 
+                    const fields: any = {}
+                    deleteFields.forEach((field: string)=>{
+                        // @ts-ignore
+                        fields["metadata."+field] = ""
+                    })
+                    await this._db.collection(this._bucketName+".files").findOneAndUpdate({"metadata.isLatest":true,"metadata.path":filePath},{$unset:fields})
+                }
+            }
+            resolve()
         })
     }
     /**
@@ -436,40 +430,40 @@ class MongoFileTree{
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFolderMetadata("sample-folder/subfolder", {favorite:true}, ["sample-property"])
      */
-    changeFolderMetadata(folderPath: string, newMetadata?:MetadataOptions, deleteFields?:string[]){
-        return new Promise<void>((resolve, reject)=>{
-            this._client.connect(async ()=>{
-                // @ts-ignore
-                if(newMetadata?.path || deleteFields?.includes('path')){
-                    return reject(new Error("Cannot change or delete 'path' metadata property using this method" ))
-                }
-                // @ts-ignore
-                if(newMetadata?.parentDirectory|| deleteFields?.includes('parentDirectory')){
-                    return reject(new Error("Cannot change or delete 'parentDirectory' metadata property using this method" ))
-                }
-                // @ts-ignore
-                if(newMetadata?.isLatest || deleteFields?.includes('isLatest')){
-                    return reject(new Error("Cannot add or delete 'isLatest' metadata property for a folder" ))
-                }
+    changeFolderMetadata(folderPath: string, newMetadata?:MetadataOptions, deleteFields?:string[]): Promise<void>{
+        return new Promise<void>(async (resolve, reject)=>{
+            await this._client.connect()
+            
+            // @ts-ignore
+            if(newMetadata?.path || deleteFields?.includes('path')){
+                return reject(new Error("Cannot change or delete 'path' metadata property using this method" ))
+            }
+            // @ts-ignore
+            if(newMetadata?.parentDirectory|| deleteFields?.includes('parentDirectory')){
+                return reject(new Error("Cannot change or delete 'parentDirectory' metadata property using this method" ))
+            }
+            // @ts-ignore
+            if(newMetadata?.isLatest || deleteFields?.includes('isLatest')){
+                return reject(new Error("Cannot add or delete 'isLatest' metadata property for a folder" ))
+            }
 
-                if(newMetadata){
-                    const fields: any = {}
-                    Object.keys(newMetadata).forEach((field: string)=>{
-                        // @ts-ignore
-                        fields["customMetadata."+field] = newMetadata[field]
-                    })
-                    await this._db.collection(this._folderCollectionName).findOneAndUpdate({"path":folderPath},{$set:fields})
-                }
+            if(newMetadata){
+                const fields: any = {}
+                Object.keys(newMetadata).forEach((field: string)=>{
+                    // @ts-ignore
+                    fields["customMetadata."+field] = newMetadata[field]
+                })
+                await this._db.collection(this._folderCollectionName).findOneAndUpdate({"path":folderPath},{$set:fields})
+            }
 
-                if(deleteFields){
-                    const fields: any = {}
-                    deleteFields.forEach((field: string)=>{
-                        fields["customMetadata."+field] = ""
-                    })
-                    await this._db.collection(this._folderCollectionName).findOneAndUpdate({"path":folderPath},{$unset:fields})
-                }
-                resolve()
-            })
+            if(deleteFields){
+                const fields: any = {}
+                deleteFields.forEach((field: string)=>{
+                    fields["customMetadata."+field] = ""
+                })
+                await this._db.collection(this._folderCollectionName).findOneAndUpdate({"path":folderPath},{$unset:fields})
+            }
+            resolve()
 
         })
     }
@@ -487,66 +481,65 @@ class MongoFileTree{
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.changeFolderName("new-folder-name", "sample-folder/sample-folder-2")
      */
-    changeFolderName(newName:string, folderPath:string){
-        return new Promise<void>((resolve, reject)=>{
-            this._client.connect(async ()=>{
+    changeFolderName(newName:string, folderPath:string): Promise<void>{
+        return new Promise<void>(async (resolve, reject)=>{
+            await this._client.connect()
 
-                if(folderPath === this._folderCollectionName){
-                    return reject(new Error(`Cannot rename root directory of the file tree`))
-                }
+            if(folderPath === this._folderCollectionName){
+                return reject(new Error(`Cannot rename root directory of the file tree`))
+            }
 
-                const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
+            const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
 
-                let newPath: string
+            let newPath: string
 
-                if(!topFolder && folderPath !== this._folderCollectionName){
-                    return reject(new Error(`Folder with path ${folderPath} does not exist`))
-                }
+            if(!topFolder && folderPath !== this._folderCollectionName){
+                return reject(new Error(`Folder with path ${folderPath} does not exist`))
+            }
 
-                const doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":topFolder?.parentDirectory+`/${newName}`}))
+            const doesFolderExist = Boolean(await this._db.collection(this._folderCollectionName).findOne({"path":topFolder?.parentDirectory+`/${newName}`}))
 
-                if(doesFolderExist){
-                    return reject(new Error(`Folder with name ${newName} already exists in the specified directory`))
-                }
+            if(doesFolderExist){
+                return reject(new Error(`Folder with name ${newName} already exists in the specified directory`))
+            }
 
-                newPath = topFolder?.parentDirectory+`/${newName}`
+            newPath = topFolder?.parentDirectory+`/${newName}`
 
-                if(newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
-                    // @ts-ignore
-                    const errSymbol = newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]
-                    return reject(new Error(`Character "${errSymbol}" cannot be used as part of a folder name`))
-                }
+            if(newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)){
+                // @ts-ignore
+                const errSymbol = newName.match(/\\|[/$%?@"'!$><\s*&{}#=`|:+]/)[0]
+                return reject(new Error(`Character "${errSymbol}" cannot be used as part of a folder name`))
+            }
 
-                await this._db.collection(this._folderCollectionName).updateOne({"path":folderPath},{$set:{"path":newPath, "name":newName}})
-                await this._db.collection(this._folderCollectionName).updateMany({"parentDirectory":new RegExp("^"+folderPath)},
-                [{$set:{"path":
-                {$replaceOne:{
-                    input:"$path",
-                    find:folderPath,
-                    replacement:newPath}},
-                "parentDirectory":
-                {$replaceOne:{
-                    input:"$parentDirectory",
-                    find:folderPath,
-                    replacement:newPath}},
-                "name":newName
-                }}])
+            await this._db.collection(this._folderCollectionName).updateOne({"path":folderPath},{$set:{"path":newPath, "name":newName}})
+            await this._db.collection(this._folderCollectionName).updateMany({"parentDirectory":new RegExp("^"+folderPath)},
+            [{$set:{"path":
+            {$replaceOne:{
+                input:"$path",
+                find:folderPath,
+                replacement:newPath}},
+            "parentDirectory":
+            {$replaceOne:{
+                input:"$parentDirectory",
+                find:folderPath,
+                replacement:newPath}},
+            "name":newName
+            }}])
 
-                await this._db.collection(this._bucketName+'.files').updateMany({"metadata.parentDirectory":new RegExp("^"+folderPath)},
-                [{$set:{"metadata.path":
-                {$replaceOne:{
-                    input:"$metadata.path",
-                    find:folderPath,
-                    replacement:newPath}},
-                "metadata.parentDirectory":
-                {$replaceOne:{
-                    input:"$metadata.parentDirectory",
-                    find:folderPath,
-                    replacement:newPath}}
-                }}])
+            await this._db.collection(this._bucketName+'.files').updateMany({"metadata.parentDirectory":new RegExp("^"+folderPath)},
+            [{$set:{"metadata.path":
+            {$replaceOne:{
+                input:"$metadata.path",
+                find:folderPath,
+                replacement:newPath}},
+            "metadata.parentDirectory":
+            {$replaceOne:{
+                input:"$metadata.parentDirectory",
+                find:folderPath,
+                replacement:newPath}}
+            }}])
 
-                resolve()
-            })
+            resolve()
 
         })
     }
@@ -573,25 +566,27 @@ class MongoFileTree{
      * //Relative path; absolute path of current working directory is now "sample-folder/subfolder-sample/subfolder-sample-2"
      * await fileTree.changeDirectory("subfolder-sample-2", true)
      */
-    changeDirectory(path: string, isRelative: boolean = false){
-        return new Promise<void>((resolve, reject)=>{
-            this._client.connect(async ()=>{
-                let absolutePath
-                if(!isRelative){
-                    absolutePath = path
-                }
-                else{
-                    absolutePath = this._currentWorkingDirectory+"/"+path
-                }
-                const folder = await this._db.collection(this._folderCollectionName).findOne({"path":absolutePath})
-                if(folder || absolutePath === this._folderCollectionName){
-                    this._currentWorkingDirectory = absolutePath
-                    resolve()
-                }
-                else{
-                    return reject(new Error(`Folder with path ${absolutePath} does not exist`))
-                }
-            })
+    changeDirectory(path: string, isRelative: boolean = false): Promise<void>{
+        return new Promise<void>(async (resolve, reject)=>{
+            await this._client.connect()
+
+            let absolutePath
+            
+            if(!isRelative){
+                absolutePath = path
+            }
+
+            else{
+                absolutePath = this._currentWorkingDirectory+"/"+path
+            }
+            const folder = await this._db.collection(this._folderCollectionName).findOne({"path":absolutePath})
+            if(folder || absolutePath === this._folderCollectionName){
+                this._currentWorkingDirectory = absolutePath
+                resolve()
+            }
+            else{
+                return reject(new Error(`Folder with path ${absolutePath} does not exist`))
+            }
         })
     }
     /**
@@ -608,34 +603,33 @@ class MongoFileTree{
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.deleteFolder("sample-folder/subfolder-sample")
      */
-    deleteFolder(folderPath: string){
-        return new Promise<void>((resolve, reject)=>{
-            this._client.connect(async()=>{
+    deleteFolder(folderPath: string): Promise<void>{
+        return new Promise<void>(async (resolve, reject)=>{
+            await this._client.connect()
+            
+            if(this._currentWorkingDirectory.match(folderPath) && folderPath !== this._folderCollectionName ){
+                return reject(new Error(`Cannot delete current working directory (${this._currentWorkingDirectory})`))
+            }
 
-                if(this._currentWorkingDirectory.match(folderPath) && folderPath !== this._folderCollectionName ){
-                    return reject(new Error(`Cannot delete current working directory (${this._currentWorkingDirectory})`))
-                }
+            const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
 
-                const topFolder = await this._db.collection(this._folderCollectionName).findOne({"path":folderPath})
+            if(!topFolder && folderPath !== this._folderCollectionName){
+                return reject(new Error(`Folder with path ${folderPath} does not exist`))
+            }
 
-                if(!topFolder && folderPath !== this._folderCollectionName){
-                    return reject(new Error(`Folder with path ${folderPath} does not exist`))
-                }
-
-                const allFiles: GridFSFile[] = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
+            const allFiles: GridFSFile[] = await this._bucket.find({"metadata.isLatest":true, "metadata.parentDirectory":new RegExp("^"+folderPath)}).toArray()
 
 
-                for(const file of allFiles){
-                    await this.deleteFile(file.metadata?.path)
-                }
-                await this._db.collection(this._folderCollectionName).deleteMany({"parentDirectory":new RegExp("^"+folderPath)})
+            for(const file of allFiles){
+                await this.deleteFile(file.metadata?.path)
+            }
+            await this._db.collection(this._folderCollectionName).deleteMany({"parentDirectory":new RegExp("^"+folderPath)})
 
-                if(folderPath !== this._folderCollectionName){
-                    await this._db.collection(this._folderCollectionName).deleteOne({"path":folderPath})
-                }
+            if(folderPath !== this._folderCollectionName){
+                await this._db.collection(this._folderCollectionName).deleteOne({"path":folderPath})
+            }
 
-                resolve()
-            })
+            resolve()
         })
     }
     /**
@@ -649,20 +643,19 @@ class MongoFileTree{
      * const fileTree = new MongoFileTree("mongodb://localhost:27017", "GridFS-file-tree-management-sample", "sample-bucket", "sample-folder")
      * await fileTree.deleteFile("sample-folder/sample.txt")
      */
-    deleteFile(filePath: string){
-        return new Promise<void>((resolve, reject)=>{
-            this._client.connect(async ()=>{
-                const allFileVersions = this._bucket.find({"metadata.path":filePath})
-                if(!(await allFileVersions.hasNext())){
-                    return reject(new Error(`File with path ${filePath} does not exist`))
-                }
+    deleteFile(filePath: string): Promise<void>{
+        return new Promise<void>(async (resolve, reject)=>{
+            await this._client.connect()
+            const allFileVersions = this._bucket.find({"metadata.path":filePath})
+            if(!(await allFileVersions.hasNext())){
+                return reject(new Error(`File with path ${filePath} does not exist`))
+            }
 
-                const allFileVersionsArr = await allFileVersions.toArray()
-                for(const file of allFileVersionsArr){
-                    await this._bucket.delete(file._id)
-                }
-                resolve()
-            })
+            const allFileVersionsArr = await allFileVersions.toArray()
+            for(const file of allFileVersionsArr){
+                await this._bucket.delete(file._id)
+            }
+            resolve()
         })
     }
 }

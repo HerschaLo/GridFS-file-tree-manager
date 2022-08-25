@@ -126,7 +126,7 @@ declare class MongoFileTree {
      * //Creates new folder with path sample-folder/subfolder-sample
      * let result = await fileTree.createFolder("subfolder-sample") //MongoDB InsertOneResult with the id of the document representing the folder
      */
-    createFolder(folderName: string, customMetadata?: MetadataOptions): Promise<InsertOneResult<import("bson").Document>>;
+    createFolder(folderName: string, customMetadata?: MetadataOptions): Promise<InsertOneResult>;
     /**
      * @description Returns a promise which resolves to a `GridFSBucketReadStream` of a file stored in the
      * GridFS Bucket specified by the `bucketName` property.
@@ -153,7 +153,7 @@ declare class MongoFileTree {
      * //Returns an array of bytes (numbers between 255 and 0) representing the data of the zip file
      * let zip = await fileTree.downloadFolder("sample-folder/subfolder-sample", "array")
      */
-    downloadFolder(folderPath: string, returnType: OutputType): Promise<string | Buffer | Uint8Array | Blob | ArrayBuffer | number[]>;
+    downloadFolder(folderPath: string, returnType: OutputType): Promise<Buffer | Uint8Array | string | Blob | number[] | ArrayBuffer>;
     /**
      * @description Upload a file to the GridFS Bucket file tree, with the parent directory of the file being
      * the current working directory of the file tree.
