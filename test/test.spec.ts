@@ -173,7 +173,6 @@ describe("MongoFileTree", function(){
     it('should allow users to change the name of a file', async ()=>{
         await folderSystem.client.connect()
         await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
-        console.log(process.cwd())
         await folderSystem.uploadFile(fs.createReadStream(process.cwd()+"/test/test.txt"), {name:"test-2.txt", chunkSize:1048576})
         await folderSystem.changeFileName("new-file-name.txt", "folder-test/test-2.txt")
         expect((await folderSystem.bucket.find({"metadata.path":"folder-test/new-file-name.txt"}).toArray()).length).to.be.equal(2)
