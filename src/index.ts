@@ -523,7 +523,6 @@ class MongoFileTree{
                 input:"$parentDirectory",
                 find:folderPath,
                 replacement:newPath}},
-            "name":newName
             }}])
 
             await this._db.collection(this._bucketName+'.files').updateMany({"metadata.parentDirectory":new RegExp("^"+folderPath)},
